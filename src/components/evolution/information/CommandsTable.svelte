@@ -10,7 +10,11 @@
 			<th>Fitness</th>
 		</tr>
 		{#each $evolution.population as command}
-			<tr class="bg-gray-200 hover:bg-gray-300">
+			<tr
+				class="bg-gray-200 hover:bg-gray-300"
+				on:mouseenter={() => command.highlight()}
+				on:mouseleave={() => command.unhighlight()}
+			>
 				<td>{command.id}</td>
 				<td>{command.toString()}</td>
 				<td>{command.fitness}</td>

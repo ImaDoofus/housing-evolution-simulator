@@ -1,16 +1,15 @@
-<script>
+<script lang="ts">
 	// @ts-nocheck
 
 	import { onDestroy, onMount } from 'svelte';
 	import { Minecraft } from 'three-js-minecraft';
 
+	export let minecraft: Minecraft;
+
 	let canvas;
-	let minecraft;
 
 	onMount(() => {
 		minecraft = new Minecraft(canvas);
-
-		minecraft.world.addBlock(10, 10, 1);
 
 		minecraft.resize();
 	});

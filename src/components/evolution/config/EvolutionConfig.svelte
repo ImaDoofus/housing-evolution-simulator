@@ -2,12 +2,12 @@
 	// @ts-nocheck
 
 	import { onMount } from 'svelte';
-	import { rawImageInput, terrainCanvas } from '$lib/stores/imageInput';
+	import { rawImageInput, terrainImage } from '$lib/stores/imageInput';
 	import { evolution } from '$lib/stores/evolution';
 	import Terrain from '$lib/evolution/Terrain';
+	import { currentMC, targetMC } from '$lib/stores/minecraft';
 
 	let imageUpload;
-	let terrainPreview;
 	let isMounted = false;
 
 	onMount(() => {
@@ -26,6 +26,7 @@
 				};
 			};
 		};
+		rawImageInput.set(`images/terrain_examples/example1.png`);
 	});
 
 	rawImageInput.subscribe((value) => {
@@ -35,23 +36,21 @@
 	function processImageInput() {
 		if (!isMounted) return;
 		if (!$rawImageInput) return;
-		console.log('process image input');
 		const img = new Image();
 		img.src = $rawImageInput;
 		img.onload = () => {
-			const terrain = Terrain.fromImage(img, $evolution.terrainSize);
-			terrain.drawToCanvas(terrainPreview);
-			// terrainCanvas.set(canvas);
-			// $evolution.targetTerrain = terrain;
+			console.log($currentMC.world);
+			const terrain = Terrain.fromImage(img, $evolution.terrainSize, $targetMC.world);
+			$evolution.targetTerrain = terrain;
+			$evolution.currentTerrain = new Terrain($evolution.terrainSize, $currentMC.world);
+			$currentMC.world.updateAllChunks();
+			$targetMC.world.updateAllChunks();
+			terrainImage.set(terrain.toCanvas().toDataURL());
 		};
 	}
 
-	let startingPopulation = 100;
-	let mutationRate = 0.01;
 	let terrainSize = 64;
 	let terrainFrequency = 100;
-	let likenessStopPoint = 97.5;
-	let generationTimeStopPoint = 3;
 
 	let x = 0;
 	let y = 0;
@@ -60,15 +59,24 @@
 	let previewingRawImage = false;
 
 	$: {
-		// if ($evolution.terrainSize) processImageInput();
-		if (terrainFrequency) generateTerrain();
-		if (terrainPreview) console.log(terrainPreview);
+		if (terrainSize) {
+			terrainSize = Math.min(Math.max(terrainSize, 16), 256);
+			terrainSize = Math.round(terrainSize / 16) * 16;
+			$evolution.terrainSize = terrainSize;
+			processImageInput();
+		}
 	}
 
 	function generateTerrain() {
 		if (!isMounted) return;
-		$evolution.targetTerrain = Terrain.generate($evolution.terrainSize, terrainFrequency);
-		// rawImageInput.set($evolution.targetTerrain.drawToCanvas().toDataURL());
+		console.log('generate terrain');
+		$evolution.targetTerrain = Terrain.generate(
+			$evolution.terrainSize,
+			terrainFrequency,
+			$targetMC.world
+		);
+		$evolution.currentTerrain = new Terrain($evolution.terrainSize, $currentMC.world);
+		rawImageInput.set($evolution.targetTerrain.toCanvas().toDataURL());
 	}
 </script>
 
@@ -83,7 +91,7 @@
 		<div class="divider m-2">OR</div>
 		<h2 class="text-center">Try Example Image</h2>
 		<div class="grid grid-cols-4 w-full gap-2">
-			{#each [1, 2, 3, 4] as i}
+			{#each [1, 2, 3, 4, 5, 6, 7, 8] as i}
 				<button
 					class="rounded-lg shadow-lg hover:border-2"
 					on:click={() => rawImageInput.set(`images/terrain_examples/example${i}.png`)}
@@ -103,7 +111,7 @@
 			<input
 				type="range"
 				min="1"
-				max="50"
+				max="100"
 				step="1"
 				bind:value={terrainFrequency}
 				class="range mr-1"
@@ -138,7 +146,7 @@
 			{#if previewingRawImage}
 				<img src={$rawImageInput} alt="raw" class="w-full rounded-b-lg" />
 			{:else}
-				<canvas bind:this={terrainPreview} class="w-full rounded-b-lg" />
+				<img src={$terrainImage} alt="terrain" class="w-full rounded-b-lg" />
 			{/if}
 		</div>
 		<!-- {/if} -->
@@ -148,22 +156,15 @@
 
 	<label class="label">
 		<span class="label-text mr-2">Terrain Size</span>
-		<input
-			type="range"
-			min="10"
-			max="256"
-			step="1"
-			bind:value={$evolution.terrainSize}
-			class="range mr-1"
-		/>
+		<input type="range" min="16" max="256" step="16" bind:value={terrainSize} class="range mr-1" />
 		<input
 			type="number"
-			bind:value={$evolution.terrainSize}
-			class="input input-bordered input-xs w-12
-		"
+			bind:value={terrainSize}
+			class="input input-bordered input-xs w-12"
+			disabled
 		/>
 	</label>
-
+	<!-- put it in the lib folder -->
 	<!-- x y z coordinates input -->
 	<label class="label">
 		<span class="label-text mr-2">NW Plot Coordinates</span>
@@ -182,15 +183,33 @@
 				min="0"
 				max="1000"
 				step="100"
-				bind:value={startingPopulation}
+				bind:value={$evolution.populationSize}
 				class="range mr-1"
 			/>
 			<input
 				type="number"
-				bind:value={startingPopulation}
+				bind:value={$evolution.populationSize}
 				class="input input-bordered input-sm w-14"
 			/>
 		</label>
+
+		<label class="label">
+			<span class="label-text mr-2">Kill Rate</span>
+			<input
+				type="range"
+				min="0"
+				max="1"
+				step="0.01"
+				bind:value={$evolution.killRate}
+				class="range mr-1"
+			/>
+			<input
+				type="number"
+				bind:value={$evolution.killRate}
+				class="input input-bordered input-sm w-14"
+			/>
+		</label>
+
 		<label class="label">
 			<span class="label-text mr-2">Mutation Rate</span>
 			<input
@@ -198,10 +217,14 @@
 				min="0"
 				max="1"
 				step="0.01"
-				bind:value={mutationRate}
+				bind:value={$evolution.mutationRate}
 				class="range mr-1"
 			/>
-			<input type="number" bind:value={mutationRate} class="input input-bordered input-sm w-14" />
+			<input
+				type="number"
+				bind:value={$evolution.mutationRate}
+				class="input input-bordered input-sm w-14"
+			/>
 		</label>
 
 		<div class="divider m-1" />
@@ -216,12 +239,12 @@
 				min="95"
 				max="100"
 				step="0.01"
-				bind:value={likenessStopPoint}
+				bind:value={$evolution.stopPointLikeness}
 				class="range mr-1"
 			/>
 			<input
 				type="number"
-				bind:value={likenessStopPoint}
+				bind:value={$evolution.stopPointLikeness}
 				class="input input-bordered input-sm w-16"
 			/>
 		</label>
@@ -232,12 +255,12 @@
 				min="0.5"
 				max="10"
 				step="0.5"
-				bind:value={generationTimeStopPoint}
+				bind:value={$evolution.stopPointGenTimeMins}
 				class="range mr-1"
 			/>
 			<input
 				type="number"
-				bind:value={generationTimeStopPoint}
+				bind:value={$evolution.stopPointGenTimeMins}
 				class="input input-bordered input-sm w-14"
 			/>
 		</label>
@@ -246,7 +269,8 @@
 
 		<button
 			class="btn btn-primary w-full mt-2
-		">Simulate</button
+		"
+			on:click={$evolution.start()}>Simulate</button
 		>
 	</div>
 </div>

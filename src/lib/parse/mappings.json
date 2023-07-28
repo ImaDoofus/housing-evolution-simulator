@@ -1,0 +1,652 @@
+{
+    "air": {
+        "method": "set"
+    },
+    "stone": {
+        "method": "set",
+        "variants": [
+            "stone",
+            "granite",
+            "polished_granite",
+            "diorite",
+            "polished_diorite",
+            "andesite",
+            "polished_andesite"
+        ]
+    },
+    "grass": {
+        "method": "set"
+    },
+    "dirt": {
+        "method": "set",
+        "variants": [
+            "dirt",
+            "coarse_dirt",
+            "podzol"
+        ]
+    },
+    "cobblestone": {
+        "method": "set"
+    },
+    "planks": {
+        "method": "set",
+        "variants": [
+            "oak_planks",
+            "spruce_planks",
+            "birch_planks",
+            "jungle_planks",
+            "acacia_planks",
+            "dark_oak_planks"
+        ]
+    },
+
+    "sapling": null,
+
+    "bedrock": {
+        "method": "set"
+    },
+
+    "flowing_water": null,
+    "still_water": null,
+    "flowing_lava": null,
+    "still_lava": null,
+
+    "sand": {
+        "method": "set",
+        "variants": [
+            "sand",
+            "red_sand"
+        ]
+    },
+    "gravel": {
+        "method": "set"
+    },
+    "gold_ore": {
+        "method": "set"
+    },
+    "iron_ore": {
+        "method": "set"
+    },
+    "coal_ore": {
+        "method": "set"
+    },
+    "log": {
+        "method": "set",
+        "variants": [
+            "oak_log",
+            "spruce_log",
+            "birch_log",
+            "jungle_log"
+        ]
+    },
+    "leaves": {
+        "method": "set",
+        "variants": [
+            "oak_leaves",
+            "spruce_leaves",
+            "birch_leaves",
+            "jungle_leaves"
+        ]
+    },
+    "sponge": {
+        "method": "set",
+        "variants": [
+            "sponge",
+            "wet_sponge"
+        ]
+    },
+    "glass": {
+        "method": "set"
+    },
+    "lapis_ore": {
+        "method": "set"
+    },
+    "lapis_block": {
+        "method": "set"
+    },
+    "dispenser": {
+        "_comment": "south-facing",
+        "method": "set"
+    },
+    "sandstone": {
+        "method": "set",
+        "variants": [
+            "sandstone",
+            "chiseled_sandstone",
+            "smooth_sandstone"
+        ]
+    },
+    "note_block": {
+        "method": "set"
+    },
+
+    "bed": null,
+    "powered_rail": null,
+    "detector_rail": null,
+
+    "sticky_piston": {
+        "_comment": "downwards-facing",
+        "method": "set"
+    },
+    "cobweb": null,
+    "tall_grass": null,
+    "dead_bush": null,
+
+    "piston": {
+        "method": "set"
+    },
+
+    "piston_head": null,
+    
+    "wool": {
+        "method": "set",
+        "variants": [
+            "white_wool",
+            "orange_wool",
+            "magenta_wool",
+            "light_blue_wool",
+            "yellow_wool",
+            "lime_wool",
+            "pink_wool",
+            "gray_wool",
+            "light_gray_wool",
+            "cyan_wool",
+            "purple_wool",
+            "blue_wool",
+            "brown_wool",
+            "green_wool",
+            "red_wool",
+            "black_wool"
+        ]
+    },
+
+    "piston_extension": null,
+    "dandelion": null,
+    "poppy": null,
+    "brown_mushroom": null,
+    "red_mushroom": null,
+
+    "gold_block": {
+        "method": "set"
+    },
+    "iron_block": {
+        "method": "set"
+    },
+
+    "double_stone_slab": null,
+
+    "stone_slab": {
+        "_comment": "bottom_slab",
+        "method": "set",
+        "variants": [
+            "stone_slab",
+            "sandstone_slab",
+            "wooden_slab",
+            "cobblestone_slab",
+            "brick_slab",
+            "stone_brick_slab",
+            "nether_brick_slab",
+            "quartz_slab"
+        ]
+    },
+    "bricks": {
+        "method": "set"
+    },
+    "tnt": {
+        "method": "set"
+    },
+    "bookshelf": {
+        "method": "set"
+    },
+    "mossy_cobblestone": {
+        "method": "set"
+    },
+    "obsidian": {
+        "method": "set"
+    },
+
+    "torch": null,
+    "fire": null,
+    "mob_spawner": null,
+
+    "oak_stairs": {
+        "_comment": "bottom stair, west-facing",
+        "method": "set"
+    },
+
+    "chest": null,
+    "redstone_wire": null,
+
+    "diamond_ore": {
+        "method": "set"
+    },
+    "diamond_block": {
+        "method": "set"
+    },
+    "crafting_table": {
+        "method": "set"
+    },
+
+    "wheat": null,
+    "farmland": null,
+
+    "furnace": {
+        "_comment": "south-facing",
+        "method": "set"
+    },
+
+    "lit_furnace": null,
+    "standing_sign": null,
+    "oak_door": null,
+    "ladder": null,
+    "rail": null,
+
+    "cobblestone_stairs": {
+        "_comment": "bottom stair, west-facing",
+        "method": "set"
+    },
+    
+    "wall_sign": null,
+    "lever": null,
+    "stone_pressure_plate": null,
+    "iron_door": null,
+    "wooden_pressure_plate": null,
+
+    "redstone_ore": {
+        "method": "set"
+    },
+
+    "lit_redstone_ore": null,
+    "unlit_redstone_torch": null,
+    "redstone_torch": null,
+    "stone_button": null,
+    "snow_layer": null,
+
+    "ice": {
+        "method": "set"
+    },
+    "snow_block": {
+        "method": "set"
+    },
+
+    "cactus": null,
+
+    "clay": {
+        "method": "set"
+    },
+
+    "sugar_cane": null,
+    "jukebox": null,
+    "oak_fence": null,
+
+    "pumpkin": {
+        "_comment": "south-facing",
+        "method": "set"
+    },
+    "netherrack": {
+        "method": "set"
+    },
+    "soul_sand": {
+        "method": "set"
+    },
+    "glowstone": {
+        "method": "set"
+    },
+
+    "portal": null,
+
+    "jack_o_lantern": {
+        "method": "set"
+    },
+
+    "cake": null,
+    "unpowered_repeater": null,
+    "powered_repeater": null,
+
+    "stained_glass": {
+        "method": "set",
+        "variants": [
+            "white_stained_glass",
+            "orange_stained_glass",
+            "magnenta_stained_glass",
+            "light_blue_stained_glass",
+            "yellow_stained_glass",
+            "lime_stained_glass",
+            "pink_stained_glass",
+            "gray_stained_glass",
+            "light_gray_stained_glass",
+            "cyan_stained_glass",
+            "purple_stained_glass",
+            "blue_stained_glass",
+            "brown_stained_glass",
+            "green_stained_glass",
+            "red_stained_glass",
+            "black_stained_glass"
+        ]
+    },
+
+    "trapdoor": null,
+    "monster_egg": null,
+
+    "stone_bricks": {
+        "method": "set",
+        "variants": [
+            "stone_bricks",
+            "mossy_stone_bricks",
+            "cracked_stone_bricks",
+            "chiseled_stone_bricks"
+        ]
+    },
+
+    "brown_mushroom_block": null,
+    "red_mushroom_block": null,
+    "iron_bars": null,
+    "glass_pane": null,
+
+    "melon": {
+        "method": "set"
+    },
+
+    "pumpkin_stem": null,
+    "melon_stem": null,
+    "vines": null,
+    "oak_fence_gate": null,
+
+    "brick_stairs": {
+        "method": "set"
+    },
+    "stone_brick_stairs": {
+        "method": "set"
+    },
+    "mycelium": {
+        "method": "set"
+    },
+
+    "lily_pad": null,
+
+    "nether_brick": {
+        "method":"set"
+    },
+
+    "nether_brick_fence": null,
+
+    "nether_brick_stairs": {
+        "method": "set"
+    },
+
+    "nether_wart": null,
+    "enchantment_table": null,
+    "brewing_stand": null,
+    "cauldron": null,
+    "end_portal": null,
+
+    "end_portal_frame": {
+        "method": "set"
+    },
+    "end_stone": {
+        "method": "set"
+    },
+    "dragon_egg": {
+        "method": "set"
+    },
+    "redstone_lamp": {
+        "method": "set"
+    },
+
+    "redstone_lamp_active": null,
+    "double_wooden_slab": null,
+
+    "wooden_slab": {
+        "method": "set",
+        "variants": [
+            "oak_slab",
+            "spruce_slab",
+            "birch_slab",
+            "jungle_slab",
+            "acacia_slab",
+            "dark_oak_slab"
+        ]
+    },
+
+    "cocoa_beans": null,
+
+    "sandstone_stairs": {
+        "method": "set"
+    },
+    "emerald_ore": {
+        "method": "set"
+    },
+
+    "ender_chest": null,
+    "tripwire_hook": null,
+    "tripwire": null,
+
+    "emerald_block": {
+        "method": "set"
+    },
+
+    "spruce_stairs": {
+        "method": "set"
+    },
+    "birch_stairs": {
+        "method": "set"
+    },
+    "jungle_stairs": {
+        "method": "set"
+    },
+
+    "command_block": null,
+    "beacon": null,
+    "cobblestone_wall": null,
+    "flower_pot": null,
+    "carrots": null,
+    "potatoes": null,
+    "button": null,
+    "skull": null,
+    "anvil": null,
+    "trapped_chest": null,
+    "light_weighted_pressure_plate": null,
+    "heavy_weighted_pressure_plate": null,
+    "unpowered_comparator": null,
+    "powered_comparator": null,
+    "daylight_detector": null,
+
+    "redstone_block": {
+        "method": "set"
+    },
+    "quartz_ore": {
+        "method": "set"
+    },
+
+    "hopper": null,
+
+    "quartz_block": {
+        "method": "set",
+        "variants": [
+            "quartz_block",
+            "chiseled_quartz_block",
+            "pillar_quartz_block"
+        ]
+    },
+    "quartz_stairs": {
+        "method": "set"
+    },
+
+    "activator_rail": null,
+
+    "dropper": {
+        "_comment": "south-facing",
+        "method": "set"
+    },
+    "white_terracotta": {
+        "method": "set",
+        "variants": [
+            "white_terracotta",
+            "orange_terracotta",
+            "magenta_terracotta",
+            "light_blue_terracotta",
+            "yellow_terracotta",
+            "lime_terracotta",
+            "pink_terracotta",
+            "gray_terracotta",
+            "light_gray_terracotta",
+            "cyan_terracotta",
+            "purple_terracotta",
+            "blue_terracotta",
+            "brown_terracotta",
+            "green_terracotta",
+            "red_terracotta",
+            "black_terracotta",
+            "white_terracotta"
+        ]
+    },
+
+    "stained_glass_pane": null,
+    "acacia_leaves": null,
+
+    "acacia_log": {
+        "method": "set",
+        "variants": [
+            "acacia_log",
+            "dark_oak_log"
+        ]
+    },
+    "acacia_stairs": {
+        "method": "set"
+    },
+    "dark_oak_stairs": {
+        "method": "set"
+    },
+    "slime_block": {
+        "method": "set"
+    },
+    "barrier": {
+        "method": "set"
+    },
+
+    "iron_trapdoor": null,
+
+    "prismarine": {
+        "method": "set",
+        "variants": [
+            "prismarine",
+            "prismarine_bricks",
+            "dark_prismarine"
+        ]
+    },
+    "sea_lantern": {
+        "method": "set"
+    },
+    "hay_bale": {
+        "method": "set"
+    },
+
+    "white_carpet": null,
+
+    "terracotta": {
+        "method": "set"
+    },
+    "coal_block": {
+        "method": "set"
+    },
+    "packed_ice": {
+        "method": "set"
+    },
+
+    "double_plant": null,
+    "standing_banner": null,
+    "wall_banner": null,
+    "daylight_sensor_inverted": null,
+
+    "red_sandstone": {
+        "method": "set",
+        "variants": [
+            "red_sandstone",
+            "chiseled_red_sandstone",
+            "smooth_red_sandstone"
+        ]
+    },
+    "red_sandstone_stairs": {
+        "method": "set"
+    },
+
+    "double_red_sandstone_slab": null,
+
+    "red_sandstone_slab": {
+        "method": "set"
+    },
+
+    "spruce_fence_gate": null,
+    "birch_fence_gate": null,
+    "jungle_fence_gate": null,
+    "dark_oak_fence_gate": null,
+    "acacia_fence_gate": null,
+    "spruce_fence": null,
+    "birch_fence": null,
+    "jungle_fence": null,
+    "dark_oak_fence": null,
+    "acacia_fence": null,
+    "spruce_door": null,
+    "birch_door": null,
+    "jungle_door": null,
+    "acacia_door": null,
+    "dark_oak_door": null,
+    "end_rod": null,
+    "chorus_plant": null,
+    "chorus_flower": null,
+    "purpur_block": null,
+    "purpur_pillar": null,
+    "purpur_stairs": null,
+    "purpur_double_slab": null,
+    "purpur_slab": null,
+    "end_bricks": null,
+    "beetroots": null,
+    "grass_path": null,
+    "end_gateway": null,
+    "repeating_command_block": null,
+    "chain_command_block": null,
+    "frosted_ice": null,
+    "magma": null,
+    "nether_wart_block": null,
+    "red_nether_brick": null,
+    "bone_block": null,
+    "structure_void": null,
+    "observer": null,
+    "white_shulker_box": null,
+    "orange_shulker_box": null,
+    "magenta_shulker_box": null,
+    "light_blue_shulker_box": null,
+    "yellow_shulker_box": null,
+    "lime_shulker_box": null,
+    "pink_shulker_box": null,
+    "gray_shulker_box": null,
+    "silver_shulker_box": null,
+    "cyan_shulker_box": null,
+    "purple_shulker_box": null,
+    "blue_shulker_box": null,
+    "brown_shulker_box": null,
+    "green_shulker_box": null,
+    "red_shulker_box": null,
+    "black_shulker_box": null,
+    "white_glazed_terracotta": null,
+    "orange_glazed_terracotta": null,
+    "magenta_glazed_terracotta": null,
+    "light_blue_glazed_terracotta": null,
+    "yellow_glazed_terracotta": null,
+    "lime_glazed_terracotta": null,
+    "pink_glazed_terracotta": null,
+    "gray_glazed_terracotta": null,
+    "light_gray_glazed_terracotta": null,
+    "cyan_glazed_terracotta": null,
+    "purple_glazed_terracotta": null,
+    "blue_glazed_terracotta": null,
+    "brown_glazed_terracotta": null,
+    "green_glazed_terracotta": null,
+    "red_glazed_terracotta": null,
+    "black_glazed_terracotta": null,
+    "concrete": null,
+    "concrete_powder": null,
+    "placeholder253": null,
+    "placeholder254": null,
+    "structure_block": null
+}

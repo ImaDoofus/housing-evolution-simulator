@@ -63,7 +63,7 @@ export default class Terrain {
 		}
 
 		return terrain;
-	} // got it
+	}
 
 	// you will have to clone it
 	// but then we will have seperate code
