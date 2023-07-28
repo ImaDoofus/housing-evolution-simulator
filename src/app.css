@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	@font-face {
+		font-family: 'Minecraft';
+		src: url('/fonts/MinecraftRegular-Bmg3.otf') format('opentype');
+	}
+	html {
+		font-family: 'Minecraft', sans-serif;
+	}
+}
