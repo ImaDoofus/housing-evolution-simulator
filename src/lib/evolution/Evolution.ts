@@ -15,11 +15,11 @@ export default class Evolution {
 	targetTerrain!: Terrain;
 	generation = 0;
 	commandsExecuted: Command[] = [];
-	populationSize = 69;
-	stopPointGenTimeMins = 3;
+	populationSize = 50;
+	stopPointGenTimeMins = 30;
 	mutationRate = 0.1;
 	stopPointLikeness = 97.5;
-	terrainSize = 100;
+	terrainSize = 64;
 	killRate = 0.5;
 	isRunning = false;
 
@@ -29,13 +29,12 @@ export default class Evolution {
 
 	constructor() {
 		this.population = [];
-		this.population.push(new Command());
 
 		setInterval(() => {
 			if (this.isRunning) {
 				this.step();
 			}
-		}, 10);
+		}, 1000);
 	}
 
 	calculateLikenessToTarget() {
@@ -118,25 +117,39 @@ export default class Evolution {
 		this.calculateBestCommand();
 		this.bestCommand.highlight();
 
-		const killCount = Math.floor(this.populationSize * this.killRate);
-		const newPopulation = [];
-		for (let i = 0; i < killCount; i++) {
-			newPopulation.push(this.population[i]);
-		}
-		for (let i = 0; i < killCount; i++) {
-			if (Math.random() < 0.5) {
-				const command = this.population[i].reproduce();
-				command.mutate(this.mutationRate, 1);
-				command.optimizedFitnessCalculation(this.currentTerrain, this.targetTerrain);
-				newPopulation.push(command);
-			} else {
-				const command = Command.generateRandom(this.terrainSize);
-				command.optimizedFitnessCalculation(this.currentTerrain, this.targetTerrain);
-				newPopulation.push(command);
+		const survivors = [];
+		//  kill all with 0 or negative fitness
+		for (let i = 0; i < this.population.length; i++) {
+			if (this.population[i].fitness > 0) {
+				survivors.push(this.population[i]);
 			}
 		}
+
+		const newPopulation = [];
+		// reproduce
+		for (let i = 0; i < this.population.length; i++) {
+			const parent = this.population[i];
+			const child = parent.reproduce();
+			child.mutate(this.mutationRate, 1, this.terrainSize);
+			child.optimizedFitnessCalculation(this.currentTerrain, this.targetTerrain);
+			newPopulation.push(child);
+		}
+
+		// the rest of the population is random
+		for (let i = newPopulation.length; i < this.populationSize; i++) {
+			const command = Command.generateRandom(this.terrainSize);
+			command.optimizedFitnessCalculation(this.currentTerrain, this.targetTerrain);
+			newPopulation.push(command);
+		}
+
 		this.population = newPopulation;
-		this.population.sort((a, b) => b.fitness - a.fitness);
+		this.population.sort((a, b) => {
+			// sort by fitness then by size
+			if (a.fitness === b.fitness) {
+				return b.getSize() - a.getSize();
+			}
+			return b.fitness - a.fitness;
+		});
 
 		// eslint-disable-next-line no-self-assign
 		evolution.update((e) => (e = e));

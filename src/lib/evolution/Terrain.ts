@@ -30,9 +30,10 @@ export default class Terrain {
 	static generate(size: number, frequency: number, mcWorld: Minecraft.World) {
 		const terrain = new Terrain(size, mcWorld);
 		const noise = createNoise2D();
+		const AMPLITUDE = size / 2;
 		for (let x = 0; x < size; x++) {
 			for (let z = 0; z < size; z++) {
-				const height = Math.floor(noise(x / frequency, z / frequency) * 10);
+				const height = Math.floor((noise(x / frequency, z / frequency) + 1) * AMPLITUDE);
 				for (let y = 0; y < height; y++) {
 					terrain.mcWorld.setBlock(x, y, z, 1);
 				}
@@ -62,13 +63,17 @@ export default class Terrain {
 			return height;
 		}
 
+		for (let x = 0; x < size; x++) {
+			for (let z = 0; z < size; z++) {
+				const height = getImageHeightAt(x, z);
+				for (let y = 0; y < height; y++) {
+					terrain.mcWorld.setBlock(x, y, z, 1);
+				}
+			}
+		}
+
 		return terrain;
 	}
-
-	// you will have to clone it
-	// but then we will have seperate code
-	// yes but it is private i can unprivate it and push code
-	// its not working atm tho
 
 	toCanvas() {
 		const canvas = document.createElement('canvas');
@@ -77,6 +82,7 @@ export default class Terrain {
 		if (!ctx) throw new Error('Could not get canvas context');
 		ctx.fillStyle = 'black';
 		ctx.fillRect(0, 0, this.size, this.size);
+
 		for (let x = 0; x < this.size; x++) {
 			for (let z = 0; z < this.size; z++) {
 				for (let y = 0; y < this.size; y++) {

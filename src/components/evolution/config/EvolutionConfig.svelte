@@ -39,13 +39,12 @@
 		const img = new Image();
 		img.src = $rawImageInput;
 		img.onload = () => {
-			console.log($currentMC.world);
 			const terrain = Terrain.fromImage(img, $evolution.terrainSize, $targetMC.world);
 			$evolution.targetTerrain = terrain;
 			$evolution.currentTerrain = new Terrain($evolution.terrainSize, $currentMC.world);
 			$currentMC.world.updateAllChunks();
 			$targetMC.world.updateAllChunks();
-			terrainImage.set(terrain.toCanvas().toDataURL());
+			// terrainImage.set(terrain.toCanvas().toDataURL('image/jpeg', 0.5));
 		};
 	}
 
@@ -76,7 +75,8 @@
 			$targetMC.world
 		);
 		$evolution.currentTerrain = new Terrain($evolution.terrainSize, $currentMC.world);
-		rawImageInput.set($evolution.targetTerrain.toCanvas().toDataURL());
+		$currentMC.world.updateAllChunks();
+		$targetMC.world.updateAllChunks();
 	}
 </script>
 
@@ -105,7 +105,7 @@
 			{/each}
 		</div>
 		<div class="divider m-2">OR</div>
-		<button class="btn btn-primary w-full" on:click={generateTerrain}>Generate Terrain</button>
+		<button class="btn btn-secondary w-full" on:click={generateTerrain}>Generate Terrain</button>
 		<label class="label">
 			<span class="label-text mr-2">Frequency</span>
 			<input

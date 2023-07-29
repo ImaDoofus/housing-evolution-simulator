@@ -16,12 +16,11 @@ export default class Command {
 	x2: number;
 	y2: number;
 	z2: number;
-	mesh: Mesh;
+	mesh: Mesh | undefined;
 	executionTime = 5;
 	isHighlighted = false;
 
 	static count = 0;
-	static TERRAIN_SIZE = 0;
 
 	constructor() {
 		this.id = Command.count++;
@@ -37,35 +36,36 @@ export default class Command {
 				0;
 	}
 
-	// toString() {
-	// 	return `Command(${this.block === 1 ? 'block' : 'air'}, ${this.x1}, ${this.z1}, ${this.x2}, ${
-	// 		this.z2
-	// 	})`;
-	// }
-
 	toString() {
 		return `Command(${this.block === 1 ? 'block' : 'air'}, ${this.x1}, ${this.y1}, ${this.z1}, ${
 			this.x2
 		}, ${this.y2}, ${this.z2})`;
 	}
 
-	#clamp(value: number) {
-		return Math.round(Math.max(0, Math.min(Command.TERRAIN_SIZE - 1, value)));
+	getSize() {
+		return (this.x2 - this.x1 + 1) * (this.y2 - this.y1 + 1) * (this.z2 - this.z1 + 1);
 	}
 
-	mutate(mutationRate: number, mutationAmount: number) {
+	#clamp(value: number, min: number, max: number) {
+		return Math.round(Math.max(min, Math.min(value, max)));
+	}
+
+	mutate(mutationRate: number, mutationAmount: number, terrainSize: number) {
+		function getMutation() {
+			return Math.random() * mutationAmount * 2 - mutationAmount;
+		}
 		if (Math.random() < mutationRate)
-			this.x1 = this.#clamp(this.x1 + (Math.random() - 0.5) * mutationAmount);
+			this.x1 = this.#clamp(this.x1 + getMutation(), 0, terrainSize - 1);
 		if (Math.random() < mutationRate)
-			this.y1 = this.#clamp(this.y1 + (Math.random() - 0.5) * mutationAmount);
+			this.y1 = this.#clamp(this.y1 + getMutation(), 0, terrainSize - 1);
 		if (Math.random() < mutationRate)
-			this.z1 = this.#clamp(this.z1 + (Math.random() - 0.5) * mutationAmount);
+			this.z1 = this.#clamp(this.z1 + getMutation(), 0, terrainSize - 1);
 		if (Math.random() < mutationRate)
-			this.x2 = this.#clamp(this.x2 + (Math.random() - 0.5) * mutationAmount);
+			this.x2 = this.#clamp(this.x2 + getMutation(), 0, terrainSize - 1);
 		if (Math.random() < mutationRate)
-			this.y2 = this.#clamp(this.y2 + (Math.random() - 0.5) * mutationAmount);
+			this.y2 = this.#clamp(this.y2 + getMutation(), 0, terrainSize - 1);
 		if (Math.random() < mutationRate)
-			this.z2 = this.#clamp(this.z2 + (Math.random() - 0.5) * mutationAmount);
+			this.z2 = this.#clamp(this.z2 + getMutation(), 0, terrainSize - 1);
 	}
 
 	reproduce() {
@@ -80,24 +80,6 @@ export default class Command {
 		clone.z2 = this.z2;
 		return clone;
 	}
-
-	// highlight() {
-	// 	if (this.isHighlighted) return;
-	// 	const geometry = new BoxGeometry(this.x2 - this.x1 + 1, 1.1, this.z2 - this.z1 + 1);
-	// 	const material = new MeshBasicMaterial({
-	// 		color: this.block === 1 ? 0x0000ff : 0xff0000,
-	// 		transparent: true,
-	// 		opacity: 0.5
-	// 	});
-	// 	const mesh = new Mesh(geometry, material);
-	// 	mesh.position.x = (this.x1 + this.x2) / 2 + 0.5;
-	// 	mesh.position.z = (this.z1 + this.z2) / 2 + 0.5;
-	// 	mesh.position.y = 0.5;
-
-	// 	this.mesh = mesh;
-	// 	$currentMC.scene.add(mesh);
-	// 	this.isHighlighted = true;
-	// }
 
 	highlight() {
 		if (this.isHighlighted) return;
@@ -213,14 +195,19 @@ export default class Command {
 
 	static generateRandom(terrainSize: number) {
 		const command = new Command();
+		const maxSize = 16;
+		const width = Math.floor(Math.random() * maxSize) + 1;
+		const height = Math.floor(Math.random() * maxSize) + 1;
+		const depth = Math.floor(Math.random() * maxSize) + 1;
+
 		command.generation = 0;
 		command.block = Math.random() > 0.5 ? 1 : 0;
 		command.x1 = Math.floor(Math.random() * terrainSize);
 		command.y1 = Math.floor(Math.random() * terrainSize);
 		command.z1 = Math.floor(Math.random() * terrainSize);
-		command.x2 = Math.floor(Math.random() * terrainSize);
-		command.y2 = Math.floor(Math.random() * terrainSize);
-		command.z2 = Math.floor(Math.random() * terrainSize);
+		command.x2 = command.x1 + width;
+		command.y2 = command.y1 + height;
+		command.z2 = command.z1 + depth;
 		return command;
 	}
 }
