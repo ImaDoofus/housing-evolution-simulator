@@ -1,6 +1,8 @@
 <script>
 	import { evolution } from '$lib/stores/evolution';
 	import CommandsTable from './CommandsTable.svelte';
+	import FitnessChart from './FitnessChart.svelte';
+	import LikenessChart from './LikenessChart.svelte';
 </script>
 
 <h1 class="text-3xl text-center p-2">Information</h1>
@@ -21,7 +23,7 @@
 		</div>
 	</div>
 	<div class="divider m-1" />
-	<CommandsTable />
+	<!-- <CommandsTable /> -->
 	<div class="divider m-1" />
 	<div class="flex justify-around w-full">
 		<div class="flex flex-col items-center">
@@ -36,4 +38,6 @@
 
 		<button class="btn btn-primary">Copy Commands</button>
 	</div>
+	<FitnessChart />
+	<LikenessChart />
 </div>

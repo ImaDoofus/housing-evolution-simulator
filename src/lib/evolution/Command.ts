@@ -1,9 +1,38 @@
+import { evolution } from '$lib/stores/evolution';
 import { currentMC } from '$lib/stores/minecraft';
 import type Terrain from './Terrain';
 import { BoxGeometry, Mesh, MeshBasicMaterial } from 'three';
 import { Minecraft } from 'three-js-minecraft';
 let $currentMC: Minecraft;
 currentMC.subscribe((value) => ($currentMC = value));
+
+class CommandCacher {
+	cache: Map<string, number>;
+
+	constructor() {
+		this.cache = new Map();
+	}
+
+	getCacheKey(command: Command) {
+		return `${command.x1},${command.y1},${command.z1},${command.x2},${command.y2},${command.z2}`;
+	}
+
+	getCachedCommand(command: Command) {
+		const key = this.getCacheKey(command);
+		return this.cache.get(key);
+	}
+
+	cacheCommand(command: Command) {
+		const key = this.getCacheKey(command);
+		this.cache.set(key, command.fitness);
+	}
+
+	clearCache() {
+		this.cache = new Map();
+	}
+}
+
+export const commandCacher = new CommandCacher();
 
 export default class Command {
 	id: number;
@@ -43,7 +72,14 @@ export default class Command {
 	}
 
 	getSize() {
-		return (this.x2 - this.x1 + 1) * (this.y2 - this.y1 + 1) * (this.z2 - this.z1 + 1);
+		const minX = Math.min(this.x1, this.x2);
+		const maxX = Math.max(this.x1, this.x2);
+		const minY = Math.min(this.y1, this.y2);
+		const maxY = Math.max(this.y1, this.y2);
+		const minZ = Math.min(this.z1, this.z2);
+		const maxZ = Math.max(this.z1, this.z2);
+
+		return (maxX - minX + 1) * (maxY - minY + 1) * (maxZ - minZ + 1);
 	}
 
 	#clamp(value: number, min: number, max: number) {
@@ -89,14 +125,16 @@ export default class Command {
 			this.z2 - this.z1 + 1
 		);
 		const material = new MeshBasicMaterial({
-			color: this.block === 1 ? 0x0000ff : 0xff0000,
+			color: this.block === 1 ? 0x00ff00 : 0xff0000,
 			transparent: true,
 			opacity: 0.5
 		});
 		const mesh = new Mesh(geometry, material);
-		mesh.position.x = (this.x1 + this.x2) / 2 + 0.5;
-		mesh.position.y = (this.y1 + this.y2) / 2 + 0.5;
-		mesh.position.z = (this.z1 + this.z2) / 2 + 0.5;
+		mesh.position.set(
+			this.x1 + (this.x2 - this.x1) / 2 + 0.5,
+			this.y1 + (this.y2 - this.y1) / 2 + 0.5,
+			this.z1 + (this.z2 - this.z1) / 2 + 0.5
+		);
 
 		this.mesh = mesh;
 		$currentMC.scene.add(mesh);
@@ -113,49 +151,26 @@ export default class Command {
 		terrain.setRegion(this.x1, this.y1, this.z1, this.x2, this.y2, this.z2, this.block);
 	}
 
-	// optimizedFitnessCalculation(currentTerrain: Terrain, targetTerrain: Terrain) {
-	// 	let likenessBeforeExecution = 0;
-	// 	let likenessAfterExecution = 0;
-	// 	const minX = Math.min(this.x1, this.x2);
-	// 	const maxX = Math.max(this.x1, this.x2);
-	// 	const minY = Math.min(this.y1, this.y2);
-	// 	const maxY = Math.max(this.y1, this.y2);
-	// 	const minZ = Math.min(this.z1, this.z2);
-	// 	const maxZ = Math.max(this.z1, this.z2);
+	static currentTerrain: Terrain;
+	static targetTerrain: Terrain;
 
-	// 	const chunkMinX = Math.floor(minX / 16);
-	// 	const chunkMaxX = Math.floor(maxX / 16);
-	// 	const chunkMinY = Math.floor(minY / 16);
-	// 	const chunkMaxY = Math.floor(maxY / 16);
-	// 	const chunkMinZ = Math.floor(minZ / 16);
-	// 	const chunkMaxZ = Math.floor(maxZ / 16);
+	static setTerrains(currentTerrain: Terrain, targetTerrain: Terrain) {
+		Command.currentTerrain = currentTerrain;
+		Command.targetTerrain = targetTerrain;
+	}
 
-	// 	for (let x = chunkMinX; x <= chunkMaxX; x++) {
-	// 		for (let y = chunkMinY; y <= chunkMaxY; y++) {
-	// 			for (let z = chunkMinZ; z <= chunkMaxZ; z++) {
-	// 				const currentChunk = currentTerrain.mcWorld.getChunk(x, y, z);
-	// 				const targetChunk = targetTerrain.mcWorld.getChunk(x, y, z);
-	// 				for (let i = 0; i < currentChunk.blocks.length; i++) {
-	// 					const x = i % 16;
-	// 					if (x < minX || x > maxX) continue;
-	// 					const y = Math.floor(i / 256);
-	// 					if (y < minY || y > maxY) continue;
-	// 					const z = Math.floor((i % 256) / 16);
-	// 					if (z < minZ || z > maxZ) continue;
-
-	// 					const currentBlock = currentChunk.blocks[i];
-	// 					const targetBlock = targetChunk.blocks[i];
-	// 					likenessBeforeExecution += currentBlock === targetBlock ? 1 : -1;
-	// 					likenessAfterExecution += this.block === targetBlock ? 1 : -1;
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// 	this.fitness = likenessAfterExecution - likenessBeforeExecution;
-	// }
-	optimizedFitnessCalculation(currentTerrain: Terrain, targetTerrain: Terrain) {
-		let likenessBeforeExecution = 0;
-		let likenessAfterExecution = 0;
+	optimizedFitnessCalculation() {
+		const size = this.getSize();
+		if (size > 1000) {
+			const cachedFitness = commandCacher.getCachedCommand(this);
+			if (cachedFitness) {
+				this.fitness = cachedFitness;
+				return;
+			}
+			commandCacher.cacheCommand(this);
+		}
+		const shift = Math.log2(Command.currentTerrain.size);
+		this.fitness = 0;
 		const minX = Math.min(this.x1, this.x2);
 		const maxX = Math.max(this.x1, this.x2);
 		const minY = Math.min(this.y1, this.y2);
@@ -165,14 +180,15 @@ export default class Command {
 		for (let x = minX; x <= maxX; x++) {
 			for (let y = minY; y <= maxY; y++) {
 				for (let z = minZ; z <= maxZ; z++) {
-					const currentBlock = currentTerrain.mcWorld.getBlock(x, y, z);
-					const targetBlock = targetTerrain.mcWorld.getBlock(x, y, z);
-					likenessBeforeExecution += currentBlock === targetBlock ? 1 : -1;
-					likenessAfterExecution += this.block === targetBlock ? 1 : -1;
+					const index = ((x << shift) << shift) + (y << shift) + z;
+					const currentBlock = Command.currentTerrain.mcWorld.blocks[index];
+					const targetBlock = Command.targetTerrain.mcWorld.blocks[index];
+					if (this.block !== currentBlock && this.block === targetBlock) this.fitness++;
+					else if (this.block === currentBlock && this.block !== targetBlock) this.fitness--;
+					else if (this.block !== currentBlock && this.block !== targetBlock) this.fitness--;
 				}
 			}
 		}
-		this.fitness = likenessAfterExecution - likenessBeforeExecution;
 	}
 
 	// calculateFitness(currentTerrain: Terrain, targetTerrain: Terrain) {
@@ -195,7 +211,7 @@ export default class Command {
 
 	static generateRandom(terrainSize: number) {
 		const command = new Command();
-		const maxSize = 16;
+		const maxSize = 2;
 		const width = Math.floor(Math.random() * maxSize) + 1;
 		const height = Math.floor(Math.random() * maxSize) + 1;
 		const depth = Math.floor(Math.random() * maxSize) + 1;

@@ -1,4 +1,4 @@
-import { createNoise2D } from 'simplex-noise';
+import { createNoise2D, createNoise3D } from 'simplex-noise';
 import { Minecraft } from 'three-js-minecraft';
 
 export default class Terrain {
@@ -9,6 +9,7 @@ export default class Terrain {
 		this.mcWorld = mcWorld;
 
 		mcWorld.clear();
+		mcWorld.setSize(size);
 	}
 
 	setRegion(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, value: number) {
@@ -27,18 +28,251 @@ export default class Terrain {
 		}
 	}
 
-	static generate(size: number, frequency: number, mcWorld: Minecraft.World) {
+	static generate2D(mcWorld: Minecraft.World, size: number, frequency: number, octaves: number) {
+		console.log(mcWorld);
 		const terrain = new Terrain(size, mcWorld);
 		const noise = createNoise2D();
-		const AMPLITUDE = size / 2;
+		const AMPLITUDE = size / 10;
+
+		function getNoise(x: number, z: number, frequency: number) {
+			let value = 0;
+			for (let i = 0; i < octaves; i++) {
+				value += noise(x / frequency, z / frequency) * 0.5 + 0.5;
+				frequency /= 2;
+			}
+			return value;
+		}
+
 		for (let x = 0; x < size; x++) {
 			for (let z = 0; z < size; z++) {
-				const height = Math.floor((noise(x / frequency, z / frequency) + 1) * AMPLITUDE);
+				const height = getNoise(x, z, frequency) * AMPLITUDE;
 				for (let y = 0; y < height; y++) {
 					terrain.mcWorld.setBlock(x, y, z, 1);
 				}
 			}
 		}
+		return terrain;
+	}
+
+	static generate3D(
+		mcWorld: Minecraft.World,
+		size: number,
+		frequency: number,
+		octaves: number,
+		lacunarity: number
+	) {
+		const terrain = new Terrain(size, mcWorld);
+		const noise = createNoise3D();
+
+		function getNoise(x: number, y: number, z: number, frequency: number) {
+			let value = 0;
+			for (let i = 0; i < octaves; i++) {
+				value += noise(x / frequency, y / frequency, z / frequency);
+				frequency /= 2;
+			}
+			return value;
+		}
+
+		for (let x = 0; x < size; x++) {
+			for (let y = 0; y < size; y++) {
+				for (let z = 0; z < size; z++) {
+					const value = getNoise(x, y, z, frequency);
+					if (value > lacunarity) {
+						terrain.mcWorld.setBlock(x, y, z, 1);
+					}
+				}
+			}
+		}
+
+		return terrain;
+	}
+
+	generateSphere(x: number, y: number, z: number, radius: number, value: number) {
+		for (let dx = -radius; dx <= radius; dx++) {
+			for (let dy = -radius; dy <= radius; dy++) {
+				for (let dz = -radius; dz <= radius; dz++) {
+					const xPos = x + dx;
+					const yPos = y + dy;
+					const zPos = z + dz;
+					if (xPos < -11 || xPos > 266) continue;
+					if (yPos < 0 || yPos > 255) continue;
+					if (zPos < -11 || zPos > 266) continue;
+					if (dx * dx + dy * dy + dz * dz < radius * radius) {
+						this.mcWorld.setBlock(x + dx, y + dy, z + dz, value);
+					}
+				}
+			}
+		}
+	}
+
+	generateEllipsoid(
+		x: number,
+		y: number,
+		z: number,
+		radiusX: number,
+		radiusY: number,
+		radiusZ: number,
+		value: number
+	) {
+		for (let dx = -radiusX; dx <= radiusX; dx++) {
+			const xPos = x + dx;
+			if (xPos < -11 || xPos > 266) continue;
+			for (let dy = -radiusY; dy <= radiusY; dy++) {
+				const yPos = y + dy;
+				if (yPos < 0 || yPos > 255) continue;
+				for (let dz = -radiusZ; dz <= radiusZ; dz++) {
+					const zPos = z + dz;
+					if (zPos < -11 || zPos > 266) continue;
+					if (
+						(dx * dx) / (radiusX * radiusX) +
+							(dy * dy) / (radiusY * radiusY) +
+							(dz * dz) / (radiusZ * radiusZ) <
+						1
+					) {
+						this.mcWorld.setBlock(x + dx, y + dy, z + dz, value);
+					}
+				}
+			}
+		}
+	}
+
+	static generateHousingTest(mcWorld: Minecraft.World) {
+		const size = 64;
+		const terrain = new Terrain(size, mcWorld);
+
+		// // generate wall in center
+		// // terrain.setRegion(128, 0, 0, 128, 255, 255, 1);
+
+		// // generate borders
+		// terrain.setRegion(-11, 0, -11, 266, 255, -11, 1);
+		// terrain.setRegion(-11, 0, -11, -11, 255, 266, 1);
+		// terrain.setRegion(-11, 0, 266, 266, 255, 266, 1);
+		// terrain.setRegion(266, 0, -11, 266, 255, 266, 1);
+
+		// // generate layers
+
+		// const LAYER_HEIGHT = 54;
+		// const MINES_HEIGHT = 40;
+
+		// function generateLayer(layerY: number) {
+		// 	terrain.setRegion(-11, layerY, -11, 266, layerY, 266, 1);
+		// 	// perlin noise
+		// 	const frequency = 256;
+		// 	const noise = createNoise2D();
+		// 	for (let x = 0; x < size; x++) {
+		// 		for (let z = 0; z < size; z++) {
+		// 			const value = noise(x / frequency, z / frequency) * 0.5 + 0.5;
+		// 			const height = value * LAYER_HEIGHT + layerY;
+		// 			for (let y = layerY; y < height; y++) {
+		// 				terrain.mcWorld.setBlock(x, y, z, 1);
+		// 			}
+		// 		}
+		// 	}
+		// }
+
+		// for (let y = MINES_HEIGHT; y < 256; y += LAYER_HEIGHT) {
+		// 	generateLayer(y);
+		// }
+		// // generate mines
+
+		// const FREQUENCY = 64;
+		// const OCTAVES = 3;
+		// const LACUNARITY = 1.1;
+		// const noise = createNoise3D();
+		// function getNoise(x: number, y: number, z: number, frequency: number) {
+		// 	let value = 0;
+		// 	for (let i = 0; i < OCTAVES; i++) {
+		// 		value += noise(x / frequency, y / frequency, z / frequency);
+		// 		frequency /= 2;
+		// 	}
+		// 	return value;
+		// }
+
+		// function distanceEuclidean(
+		// 	x1: number,
+		// 	y1: number,
+		// 	z1: number,
+		// 	x2: number,
+		// 	y2: number,
+		// 	z2: number
+		// ) {
+		// 	const dx = x1 - x2;
+		// 	const dy = y1 - y2;
+		// 	const dz = z1 - z2;
+		// 	return Math.sqrt(dx * dx + dy * dy + dz * dz);
+		// }
+
+		// for (let x = 0; x < 256; x++) {
+		// 	for (let y = 0; y < MINES_HEIGHT; y++) {
+		// 		for (let z = 0; z < 256; z++) {
+		// 			const value = getNoise(x, y, z, FREQUENCY);
+		// 			if (value > LACUNARITY) {
+		// 				terrain.mcWorld.setBlock(x, y, z, 1);
+		// 			}
+		// 		}
+		// 	}
+		// }
+
+		// // add earth
+		// terrain.generateEllipsoid(-11, 0, -11, 128, 100, 128, 1);
+
+		// // add moon
+		// terrain.generateEllipsoid(256 + 11, 50, -11, 50, 50, 50, 1);
+
+		// // add venus
+		// terrain.generateEllipsoid(-11, 50, 256 + 11, 90, 80, 90, 1);
+
+		// // // add mars
+		// terrain.generateEllipsoid(256 + 11, 50, 256 + 11, 75, 75, 75, 1);
+
+		// // add asteroid belt
+		// const octaves = 4;
+		// const frequency = 256;
+		// const noise = createNoise3D();
+
+		// function getNoise(x: number, y: number, z: number, frequency: number) {
+		// 	let value = 0;
+		// 	for (let i = 0; i < octaves; i++) {
+		// 		value += noise(x / frequency, y / frequency, z / frequency);
+		// 		frequency /= 2;
+		// 	}
+		// 	return value;
+		// }
+
+		// function distanceEuclidean(
+		// 	x1: number,
+		// 	y1: number,
+		// 	z1: number,
+		// 	x2: number,
+		// 	y2: number,
+		// 	z2: number
+		// ) {
+		// 	const dx = x1 - x2;
+		// 	const dy = y1 - y2;
+		// 	const dz = z1 - z2;
+		// 	return Math.sqrt(dx * dx + dy * dy + dz * dz);
+		// }
+
+		// for (let x = 0; x < size; x++) {
+		// 	for (let y = 0; y < size; y++) {
+		// 		for (let z = 0; z < size; z++) {
+		// 			const value = getNoise(x, y, z, frequency);
+		// 			// make more lacunarity near earth so asteroids less likely to spawn there
+		// 			// earth is at x = 0, z = 0
+		// 			const lacunarity = 3 - distanceEuclidean(x, y, z, 0, 0, 0) / 256;
+		// 			if (value > lacunarity) {
+		// 				terrain.mcWorld.setBlock(x, y, z, 1);
+		// 			}
+		// 		}
+		// 	}
+		// }
+
+		// generate an ellipsoid boat shaped 40x20x10
+		terrain.generateEllipsoid(32, 10, 32, 10, 10, 30, 1);
+
+		// cut top half off
+		terrain.setRegion(0, 10, 0, 64, 64, 64, 0);
+
 		return terrain;
 	}
 
@@ -96,6 +330,10 @@ export default class Terrain {
 		}
 
 		return canvas;
+	}
+
+	static fromBlockArray(mcWorld: Minecraft.World, size: number, blocks: number[]) {
+		// TODO
 	}
 }
 

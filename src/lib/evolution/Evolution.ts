@@ -1,5 +1,6 @@
+import type Terrain from './Terrain';
+import { commandCacher } from './Command';
 import Command from './Command';
-import Terrain from './Terrain';
 import { evolution } from '$lib/stores/evolution';
 import { currentMC, targetMC } from '$lib/stores/minecraft';
 
@@ -15,30 +16,54 @@ export default class Evolution {
 	targetTerrain!: Terrain;
 	generation = 0;
 	commandsExecuted: Command[] = [];
-	populationSize = 50;
-	stopPointGenTimeMins = 30;
-	mutationRate = 0.1;
-	stopPointLikeness = 97.5;
-	terrainSize = 64;
-	killRate = 0.5;
+	populationSize = 100;
+	stopPointGenTimeMins = 60;
+	mutationRate = 0.01;
+	mutationAmount = 5;
+	stopPointLikeness = 99.75;
+	terrainSize = 80;
+	survivorRate = 0.8;
 	isRunning = false;
+	fitnessHistory: number[] = [];
+	bestFitnessHistory: number[] = [];
+	likenessHistory: number[] = [];
 
 	averageFitness = 0;
 	bestCommand = new Command();
 	likenessToTarget = 0;
+	generations = 250;
+
+	workers: Worker[] = [];
 
 	constructor() {
 		this.population = [];
+		this.workers = [];
+	}
 
-		setInterval(() => {
+	async onMount() {
+		// loop this.step as fast as possible
+		const loop = () => {
 			if (this.isRunning) {
-				this.step();
+				const start = performance.now();
+				while (performance.now() - start < 1000 / 60) {
+					this.step();
+				}
 			}
-		}, 1000);
+			requestAnimationFrame(loop);
+		};
+		requestAnimationFrame(loop);
 	}
 
 	calculateLikenessToTarget() {
-		this.likenessToTarget = this.currentTerrain.mcWorld.getLikeness(this.targetTerrain.mcWorld);
+		let likeness = 0;
+		const current = this.currentTerrain.mcWorld.blocks;
+		const target = this.targetTerrain.mcWorld.blocks;
+		for (let i = 0; i < current.length; i++) {
+			if (current[i] === target[i]) likeness++;
+			else likeness--;
+		}
+
+		this.likenessToTarget = likeness / current.length;
 	}
 
 	calculateAverageFitness() {
@@ -51,24 +76,21 @@ export default class Evolution {
 
 	calculateBestCommand() {
 		this.bestCommand = this.population[0];
-		for (const command of this.population) {
-			if (command.fitness > this.bestCommand.fitness) {
-				this.bestCommand = command;
-			}
-		}
 	}
 
 	createRandomPopulation() {
 		for (let i = 0; i < this.populationSize; i++) {
 			const command = Command.generateRandom(this.terrainSize);
-			command.optimizedFitnessCalculation(this.currentTerrain, this.targetTerrain);
+			command.optimizedFitnessCalculation();
 			this.population.push(command);
 		}
 	}
 
 	start() {
 		this.isRunning = true;
-		this.createRandomPopulation();
+		Command.setTerrains(this.currentTerrain, this.targetTerrain);
+		this.resetPopulation();
+		this.calculateLikenessToTarget();
 	}
 
 	play() {
@@ -80,7 +102,7 @@ export default class Evolution {
 	}
 
 	step() {
-		if (this.generation < 100) {
+		if (this.generation < this.generations) {
 			this.nextGeneration();
 		} else {
 			this.executeCommand();
@@ -89,12 +111,15 @@ export default class Evolution {
 	}
 
 	executeCommand() {
+		if (this.bestCommand.fitness === 0) {
+			return;
+		}
+
 		this.commandsExecuted.push(this.bestCommand);
 		this.bestCommand.execute(this.currentTerrain);
 
 		this.calculateLikenessToTarget();
-
-		console.log(this.calculateGenerationTime(), this.likenessToTarget, this.stopPointLikeness);
+		this.likenessHistory.push(this.likenessToTarget);
 
 		if (this.calculateGenerationTime() > this.stopPointGenTimeMins * 60) {
 			this.pause();
@@ -103,7 +128,9 @@ export default class Evolution {
 			this.pause();
 		}
 
-		$currentMC.world.updateAllChunks();
+		commandCacher.clearCache();
+
+		if (this.commandsExecuted.length % 30 === 0) $currentMC.world.updateAllChunks();
 	}
 
 	calculateGenerationTime() {
@@ -113,40 +140,62 @@ export default class Evolution {
 	nextGeneration() {
 		this.generation++;
 		this.calculateAverageFitness();
-		this.bestCommand.unhighlight();
+		if (this.bestCommand) this.bestCommand.unhighlight();
 		this.calculateBestCommand();
-		this.bestCommand.highlight();
+		if (this.bestCommand) this.bestCommand.highlight();
 
-		const survivors = [];
-		//  kill all with 0 or negative fitness
-		for (let i = 0; i < this.population.length; i++) {
-			if (this.population[i].fitness > 0) {
-				survivors.push(this.population[i]);
-			}
+		this.fitnessHistory.push(this.averageFitness);
+		this.bestFitnessHistory.push(this.bestCommand.fitness);
+		if (this.fitnessHistory.length > 50) {
+			this.fitnessHistory.shift();
+			this.bestFitnessHistory.shift();
 		}
 
-		const newPopulation = [];
-		// reproduce
-		for (let i = 0; i < this.population.length; i++) {
+		const MAX_WORLD_EDIT_SIZE = 100000;
+		const hasReachedConvergence =
+			this.bestFitnessHistory.length === 50 &&
+			this.bestFitnessHistory.every((v) => v === this.bestFitnessHistory[0]);
+		const hasReachedMaxWorldEditSize = this.bestCommand.getSize() > MAX_WORLD_EDIT_SIZE;
+		// console.log(this.bestCommand.getSize(), MAX_WORLD_EDIT_SIZE);
+		if ((hasReachedMaxWorldEditSize || hasReachedConvergence) && this.bestCommand.fitness > 0) {
+			// if (hasReachedConvergence) console.log('Reached convergence');
+			// if (hasReachedMaxWorldEditSize) console.log('Reached max world edit size');
+			this.executeCommand();
+			this.resetPopulation();
+			return;
+		}
+
+		//  if average fitness is close to best fitness
+		const survivalCount = Math.floor(this.populationSize * this.survivorRate);
+		const newPopulation = this.population.slice(0, survivalCount);
+
+		// i have no idea how to code a genetic algorithm
+		for (let i = 0; i < survivalCount; i++) {
 			const parent = this.population[i];
-			const child = parent.reproduce();
-			child.mutate(this.mutationRate, 1, this.terrainSize);
-			child.optimizedFitnessCalculation(this.currentTerrain, this.targetTerrain);
-			newPopulation.push(child);
-		}
-
-		// the rest of the population is random
-		for (let i = newPopulation.length; i < this.populationSize; i++) {
-			const command = Command.generateRandom(this.terrainSize);
-			command.optimizedFitnessCalculation(this.currentTerrain, this.targetTerrain);
-			newPopulation.push(command);
+			if (!parent) break;
+			const survived = parent.fitness > 0 && i < survivalCount;
+			if (survived) {
+				const child = parent.reproduce();
+				child.mutate(this.mutationRate, this.mutationAmount, this.terrainSize);
+				child.optimizedFitnessCalculation();
+				newPopulation.push(child);
+				if (child.fitness > parent.fitness) {
+					newPopulation.push(child);
+				} else {
+					newPopulation.push(parent);
+				}
+			} else {
+				const random = Command.generateRandom(this.terrainSize);
+				random.optimizedFitnessCalculation();
+				newPopulation.push(random);
+			}
 		}
 
 		this.population = newPopulation;
 		this.population.sort((a, b) => {
 			// sort by fitness then by size
 			if (a.fitness === b.fitness) {
-				return b.getSize() - a.getSize();
+				return a.getSize() - b.getSize();
 			}
 			return b.fitness - a.fitness;
 		});

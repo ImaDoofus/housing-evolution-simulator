@@ -6,27 +6,46 @@
 	import { evolution } from '$lib/stores/evolution';
 	import Terrain from '$lib/evolution/Terrain';
 	import { currentMC, targetMC } from '$lib/stores/minecraft';
+	import '$lib/nbt/nbt';
+	import parseSchematic from '$lib/nbt/nbt';
 
-	let imageUpload;
-	let isMounted = false;
+	let fileUpload;
 
 	onMount(() => {
-		isMounted = true;
-		imageUpload.onchange = (e) => {
+		fileUpload.onchange = (e) => {
 			const file = e.target.files[0];
 			const reader = new FileReader();
-			reader.readAsDataURL(file);
-			reader.onload = () => {
-				rawImageInput.set(reader.result);
+			if (file.type.split('/')[0] === 'image') {
+				reader.readAsDataURL(file);
+				reader.onload = () => {
+					rawImageInput.set(reader.result);
 
-				const img = new Image();
-				img.src = reader.result;
-				img.onload = () => {
-					terrainSize = Math.min(Math.max(img.width, img.height), 256);
+					const img = new Image();
+					img.src = reader.result;
+					img.onload = () => {
+						terrainSize = Math.min(Math.max(img.width, img.height), 256);
+					};
 				};
-			};
+			} else if (file.name.split('.')[1] === 'schematic') {
+				reader.readAsArrayBuffer(file);
+				reader.onload = () => {
+					try {
+						const { width, height, length, blocks } = parseSchematic(reader.result);
+						terrainSize = Math.min(Math.max(width, height), 256);
+						terrainSize = Math.pow(2, Math.ceil(Math.log2(terrainSize)));
+						const terrain = Terrain.fromBlockArray(blocks, terrainSize, $targetMC.world);
+						$evolution.targetTerrain = terrain;
+						resetTerrainAndUpdate();
+						// terrainImage.set(terrain.toCanvas().toDataURL('image/jpeg', 0.5));
+					} catch (e) {
+						console.error(e);
+					}
+				};
+			}
 		};
 		rawImageInput.set(`images/terrain_examples/example1.png`);
+
+		$evolution.onMount();
 	});
 
 	rawImageInput.subscribe((value) => {
@@ -34,22 +53,21 @@
 	});
 
 	function processImageInput() {
-		if (!isMounted) return;
 		if (!$rawImageInput) return;
 		const img = new Image();
 		img.src = $rawImageInput;
 		img.onload = () => {
 			const terrain = Terrain.fromImage(img, $evolution.terrainSize, $targetMC.world);
 			$evolution.targetTerrain = terrain;
-			$evolution.currentTerrain = new Terrain($evolution.terrainSize, $currentMC.world);
-			$currentMC.world.updateAllChunks();
-			$targetMC.world.updateAllChunks();
+			resetTerrainAndUpdate();
 			// terrainImage.set(terrain.toCanvas().toDataURL('image/jpeg', 0.5));
 		};
 	}
 
 	let terrainSize = 64;
 	let terrainFrequency = 100;
+	let octaves = 2;
+	let lacunarity = 0.5;
 
 	let x = 0;
 	let y = 0;
@@ -59,35 +77,61 @@
 
 	$: {
 		if (terrainSize) {
-			terrainSize = Math.min(Math.max(terrainSize, 16), 256);
-			terrainSize = Math.round(terrainSize / 16) * 16;
 			$evolution.terrainSize = terrainSize;
 			processImageInput();
 		}
 	}
 
-	function generateTerrain() {
-		if (!isMounted) return;
-		console.log('generate terrain');
-		$evolution.targetTerrain = Terrain.generate(
-			$evolution.terrainSize,
-			terrainFrequency,
-			$targetMC.world
-		);
+	function resetTerrainAndUpdate() {
 		$evolution.currentTerrain = new Terrain($evolution.terrainSize, $currentMC.world);
 		$currentMC.world.updateAllChunks();
 		$targetMC.world.updateAllChunks();
+	}
+
+	function generateTerrain2D() {
+		if (!isMounted) return;
+		$evolution.targetTerrain = Terrain.generate2D(
+			$targetMC.world,
+			$evolution.terrainSize,
+			terrainFrequency,
+			octaves
+		);
+		resetTerrainAndUpdate();
+	}
+	function generateTerrain3D() {
+		if (!isMounted) return;
+		$evolution.targetTerrain = Terrain.generate3D(
+			$targetMC.world,
+			$evolution.terrainSize,
+			terrainFrequency,
+			octaves,
+			lacunarity
+		);
+		resetTerrainAndUpdate();
+	}
+
+	function generateHousingTest() {
+		if (!isMounted) return;
+		$evolution.targetTerrain = Terrain.generateHousingTest($targetMC.world);
+		resetTerrainAndUpdate();
 	}
 </script>
 
 <h2 class="text-3xl text-center p-2">Config</h2>
 <div class="flex flex-col bg-sky-200 p-4 rounded-b-lg">
 	<div class="bg-sky-100 rounded-lg shadow-lg p-2">
-		<input
-			type="file"
-			bind:this={imageUpload}
-			class="file-input file-input-bordered file-input-secondary file-input-sm w-full"
-		/>
+		<div class="form-controll w-full">
+			<!-- svelte-ignore a11y-label-has-associated-control -->
+			<label class="label">
+				<span class="label-text">Upload .schematic or an image heightmap</span>
+			</label>
+			<input
+				type="file"
+				accept="image/*,.schematic"
+				bind:this={fileUpload}
+				class="file-input file-input-bordered file-input-secondary file-input-sm w-full"
+			/>
+		</div>
 		<div class="divider m-2">OR</div>
 		<h2 class="text-center">Try Example Image</h2>
 		<div class="grid grid-cols-4 w-full gap-2">
@@ -105,7 +149,11 @@
 			{/each}
 		</div>
 		<div class="divider m-2">OR</div>
-		<button class="btn btn-secondary w-full" on:click={generateTerrain}>Generate Terrain</button>
+		<div class="flex justify-around">
+			<button class="btn btn-secondary" on:click={generateTerrain2D}>Generate 2D Terrain</button>
+			<button class="btn btn-secondary" on:click={generateTerrain3D}>Generate 3D Terrain</button>
+			<button class="btn btn-secondary" on:click={generateHousingTest}>Housing Test</button>
+		</div>
 		<label class="label">
 			<span class="label-text mr-2">Frequency</span>
 			<input
@@ -121,6 +169,16 @@
 				bind:value={terrainFrequency}
 				class="input input-bordered input-sm w-12"
 			/>
+		</label>
+		<label class="label">
+			<span class="label-text mr-2">Octaves</span>
+			<input type="range" min="1" max="8" step="1" bind:value={octaves} class="range mr-1" />
+			<input type="number" bind:value={octaves} class="input input-bordered input-sm w-12" />
+		</label>
+		<label class="label">
+			<span class="label-text mr-2">Lacunarity</span>
+			<input type="range" min="0" max="2" step="0.01" bind:value={lacunarity} class="range mr-1" />
+			<input type="number" bind:value={lacunarity} class="input input-bordered input-sm w-12" />
 		</label>
 	</div>
 
@@ -156,14 +214,14 @@
 
 	<label class="label">
 		<span class="label-text mr-2">Terrain Size</span>
-		<input type="range" min="16" max="256" step="16" bind:value={terrainSize} class="range mr-1" />
-		<input
-			type="number"
-			bind:value={terrainSize}
-			class="input input-bordered input-xs w-12"
-			disabled
-		/>
-	</label>
+		<!-- <input type="range" min="16" max="256" step="16" bind:value={terrainSize} class="range mr-1" /> -->
+		<!-- selector input -->
+		<select bind:value={terrainSize} class="select select-bordered select-sm">
+			{#each [8, 16, 32, 64, 128, 256] as size}
+				<option value={size}>{size}</option>
+			{/each}
+		</select></label
+	>
 	<!-- put it in the lib folder -->
 	<!-- x y z coordinates input -->
 	<label class="label">
@@ -180,9 +238,9 @@
 			<span class="label-text mr-2">Population</span>
 			<input
 				type="range"
-				min="0"
-				max="1000"
-				step="100"
+				min="10"
+				max="500"
+				step="10"
 				bind:value={$evolution.populationSize}
 				class="range mr-1"
 			/>
@@ -194,18 +252,35 @@
 		</label>
 
 		<label class="label">
-			<span class="label-text mr-2">Kill Rate</span>
+			<span class="label-text mr-2">Generations</span>
+			<input
+				type="range"
+				min="1"
+				max="1000"
+				step="1"
+				bind:value={$evolution.generations}
+				class="range mr-1"
+			/>
+			<input
+				type="number"
+				bind:value={$evolution.generations}
+				class="input input-bordered input-sm w-14"
+			/>
+		</label>
+
+		<label class="label">
+			<span class="label-text mr-2">Survivor Rate</span>
 			<input
 				type="range"
 				min="0"
 				max="1"
 				step="0.01"
-				bind:value={$evolution.killRate}
+				bind:value={$evolution.survivorRate}
 				class="range mr-1"
 			/>
 			<input
 				type="number"
-				bind:value={$evolution.killRate}
+				bind:value={$evolution.survivorRate}
 				class="input input-bordered input-sm w-14"
 			/>
 		</label>
@@ -223,6 +298,23 @@
 			<input
 				type="number"
 				bind:value={$evolution.mutationRate}
+				class="input input-bordered input-sm w-14"
+			/>
+		</label>
+
+		<label class="label">
+			<span class="label-text mr-2">Mutation Amount</span>
+			<input
+				type="range"
+				min="1"
+				max="10"
+				step="1"
+				bind:value={$evolution.mutationAmount}
+				class="range mr-1"
+			/>
+			<input
+				type="number"
+				bind:value={$evolution.mutationAmount}
 				class="input input-bordered input-sm w-14"
 			/>
 		</label>
