@@ -91,17 +91,17 @@ export default class Command {
 			return Math.random() * mutationAmount * 2 - mutationAmount;
 		}
 		if (Math.random() < mutationRate)
-			this.x1 = this.#clamp(this.x1 + getMutation(), 0, terrainSize - 1);
+			this.x1 = this.#clamp(this.x1 + getMutation(), 0, terrainSize);
 		if (Math.random() < mutationRate)
-			this.y1 = this.#clamp(this.y1 + getMutation(), 0, terrainSize - 1);
+			this.y1 = this.#clamp(this.y1 + getMutation(), 0, terrainSize);
 		if (Math.random() < mutationRate)
-			this.z1 = this.#clamp(this.z1 + getMutation(), 0, terrainSize - 1);
+			this.z1 = this.#clamp(this.z1 + getMutation(), 0, terrainSize);
 		if (Math.random() < mutationRate)
-			this.x2 = this.#clamp(this.x2 + getMutation(), 0, terrainSize - 1);
+			this.x2 = this.#clamp(this.x2 + getMutation(), 0, terrainSize);
 		if (Math.random() < mutationRate)
-			this.y2 = this.#clamp(this.y2 + getMutation(), 0, terrainSize - 1);
+			this.y2 = this.#clamp(this.y2 + getMutation(), 0, terrainSize);
 		if (Math.random() < mutationRate)
-			this.z2 = this.#clamp(this.z2 + getMutation(), 0, terrainSize - 1);
+			this.z2 = this.#clamp(this.z2 + getMutation(), 0, terrainSize);
 	}
 
 	reproduce() {
@@ -119,21 +119,22 @@ export default class Command {
 
 	highlight() {
 		if (this.isHighlighted) return;
+		const expand = 0.1;
 		const geometry = new BoxGeometry(
-			this.x2 - this.x1 + 1,
-			this.y2 - this.y1 + 1,
-			this.z2 - this.z1 + 1
+			this.x2 - this.x1 + expand,
+			this.y2 - this.y1 + expand,
+			this.z2 - this.z1 + expand
 		);
 		const material = new MeshBasicMaterial({
-			color: this.block === 1 ? 0x00ff00 : 0xff0000,
+			color: this.block !== 0 ? 0x00ff00 : 0xff0000,
 			transparent: true,
 			opacity: 0.5
 		});
 		const mesh = new Mesh(geometry, material);
 		mesh.position.set(
-			this.x1 + (this.x2 - this.x1) / 2 + 0.5,
-			this.y1 + (this.y2 - this.y1) / 2 + 0.5,
-			this.z1 + (this.z2 - this.z1) / 2 + 0.5
+			this.x1 + (this.x2 - this.x1) / 2 - expand / 2,
+			this.y1 + (this.y2 - this.y1) / 2 - expand / 2,
+			this.z1 + (this.z2 - this.z1) / 2 - expand / 2
 		);
 
 		this.mesh = mesh;
@@ -177,15 +178,16 @@ export default class Command {
 		const maxY = Math.max(this.y1, this.y2);
 		const minZ = Math.min(this.z1, this.z2);
 		const maxZ = Math.max(this.z1, this.z2);
-		for (let x = minX; x <= maxX; x++) {
-			for (let y = minY; y <= maxY; y++) {
-				for (let z = minZ; z <= maxZ; z++) {
+		const currentBlocks = Command.currentTerrain.mcWorld.blocks;
+		const targetBlocks = Command.targetTerrain.mcWorld.blocks;
+		for (let x = minX; x < maxX; x++) {
+			for (let y = minY; y < maxY; y++) {
+				for (let z = minZ; z < maxZ; z++) {
 					const index = ((x << shift) << shift) + (y << shift) + z;
-					const currentBlock = Command.currentTerrain.mcWorld.blocks[index];
-					const targetBlock = Command.targetTerrain.mcWorld.blocks[index];
-					if (this.block !== currentBlock && this.block === targetBlock) this.fitness++;
-					else if (this.block === currentBlock && this.block !== targetBlock) this.fitness--;
-					else if (this.block !== currentBlock && this.block !== targetBlock) this.fitness--;
+					const currentBlock = currentBlocks[index];
+					const targetBlock = targetBlocks[index];
+					if (this.block !== targetBlock) this.fitness--;
+					else if (this.block === targetBlock && currentBlock !== targetBlock) this.fitness++;
 				}
 			}
 		}
@@ -215,15 +217,22 @@ export default class Command {
 		const width = Math.floor(Math.random() * maxSize) + 1;
 		const height = Math.floor(Math.random() * maxSize) + 1;
 		const depth = Math.floor(Math.random() * maxSize) + 1;
+		// const width = 1;
+		// const height = 1;
+		// const depth = 1;
 
+		// command.x1 = 0;
+		// command.y1 = 0;
+		// command.z1 = 0;
 		command.generation = 0;
-		command.block = Math.random() > 0.5 ? 1 : 0;
 		command.x1 = Math.floor(Math.random() * terrainSize);
 		command.y1 = Math.floor(Math.random() * terrainSize);
 		command.z1 = Math.floor(Math.random() * terrainSize);
 		command.x2 = command.x1 + width;
 		command.y2 = command.y1 + height;
 		command.z2 = command.z1 + depth;
+
+		command.block = Command.targetTerrain.mcWorld.getBlockID(command.x1, command.y1, command.z1);
 		return command;
 	}
 }

@@ -18,10 +18,10 @@ export default class Evolution {
 	commandsExecuted: Command[] = [];
 	populationSize = 100;
 	stopPointGenTimeMins = 60;
-	mutationRate = 0.01;
+	mutationRate = 0.3;
 	mutationAmount = 5;
-	stopPointLikeness = 99.75;
-	terrainSize = 80;
+	stopPointLikeness = 99.5;
+	terrainSize = 80; // TODO: make a bounding box instead
 	survivorRate = 0.8;
 	isRunning = false;
 	fitnessHistory: number[] = [];
@@ -33,11 +33,8 @@ export default class Evolution {
 	likenessToTarget = 0;
 	generations = 250;
 
-	workers: Worker[] = [];
-
 	constructor() {
 		this.population = [];
-		this.workers = [];
 	}
 
 	async onMount() {
@@ -118,7 +115,6 @@ export default class Evolution {
 		this.commandsExecuted.push(this.bestCommand);
 		this.bestCommand.execute(this.currentTerrain);
 
-		this.calculateLikenessToTarget();
 		this.likenessHistory.push(this.likenessToTarget);
 
 		if (this.calculateGenerationTime() > this.stopPointGenTimeMins * 60) {
@@ -130,7 +126,10 @@ export default class Evolution {
 
 		commandCacher.clearCache();
 
-		if (this.commandsExecuted.length % 30 === 0) $currentMC.world.updateAllChunks();
+		if (this.commandsExecuted.length % 50 === 0) {
+			$currentMC.world.updateAllChunks();
+			this.calculateLikenessToTarget();
+		}
 	}
 
 	calculateGenerationTime() {
@@ -140,12 +139,12 @@ export default class Evolution {
 	nextGeneration() {
 		this.generation++;
 		this.calculateAverageFitness();
-		if (this.bestCommand) this.bestCommand.unhighlight();
+		this.bestCommand?.unhighlight();
 		this.calculateBestCommand();
-		if (this.bestCommand) this.bestCommand.highlight();
+		this.bestCommand?.highlight();
 
 		this.fitnessHistory.push(this.averageFitness);
-		this.bestFitnessHistory.push(this.bestCommand.fitness);
+		this.bestFitnessHistory.push(this.bestCommand?.fitness || 0);
 		if (this.fitnessHistory.length > 50) {
 			this.fitnessHistory.shift();
 			this.bestFitnessHistory.shift();
@@ -170,7 +169,7 @@ export default class Evolution {
 		const newPopulation = this.population.slice(0, survivalCount);
 
 		// i have no idea how to code a genetic algorithm
-		for (let i = 0; i < survivalCount; i++) {
+		for (let i = 0; i < this.populationSize; i++) {
 			const parent = this.population[i];
 			if (!parent) break;
 			const survived = parent.fitness > 0 && i < survivalCount;

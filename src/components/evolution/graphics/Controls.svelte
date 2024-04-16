@@ -31,6 +31,7 @@
 <button
 	on:click={() => {
 		$currentMC.world.updateAllChunks();
+		$evolution.calculateLikenessToTarget();
 	}}
 >
 	<Icon icon="mdi:refresh" width={size} height={size} />

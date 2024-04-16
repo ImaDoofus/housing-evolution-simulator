@@ -1,11 +1,13 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 export default defineConfig({
-	plugins: [sveltekit()],
-	resolve: {
-		alias: {
-			zlib: 'browserify-zlib'
-		}
-	}
+	plugins: [sveltekit(), nodePolyfills()]
+
+	// resolve: {
+	// 	alias: {
+	// 		zlib: 'browserify-zlib'
+	// 	}
+	// }
 });

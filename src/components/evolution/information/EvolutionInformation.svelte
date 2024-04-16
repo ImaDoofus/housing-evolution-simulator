@@ -3,6 +3,50 @@
 	import CommandsTable from './CommandsTable.svelte';
 	import FitnessChart from './FitnessChart.svelte';
 	import LikenessChart from './LikenessChart.svelte';
+	import valid_set_blocks from '$lib/nbt/valid_set_blocks.json';
+
+	const filename = 'commands.txt';
+
+	// download commands
+	const download = (filename, text) => {
+		const element = document.createElement('a');
+		element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+		element.setAttribute('download', filename);
+
+		element.style.display = 'none';
+		document.body.appendChild(element);
+
+		element.click();
+
+		document.body.removeChild(element);
+	};
+
+	function downloadCommands() {
+		let commands = '';
+		$evolution.commandsExecuted.forEach((command) => {
+			let { id, meta } = valid_set_blocks.find((block) => block.cid === command.block);
+
+			commands +=
+				'set,' +
+				command.x1 +
+				',' +
+				command.y1 +
+				',' +
+				command.z1 +
+				',' +
+				command.x2 +
+				',' +
+				command.y2 +
+				',' +
+				command.z2 +
+				',' +
+				id +
+				',' +
+				meta +
+				'\n';
+		});
+		download(filename, commands);
+	}
 </script>
 
 <h1 class="text-3xl text-center p-2">Information</h1>
@@ -32,11 +76,14 @@
 				class="radial-progress"
 				style="--value:{$evolution.likenessToTarget * 100}; --size:8rem;"
 			>
-				{($evolution.likenessToTarget * 100).toFixed(2)}%
+				{($evolution.likenessToTarget * 100).toFixed(4)}%
 			</div>
 		</div>
 
-		<button class="btn btn-primary">Copy Commands</button>
+		<div class="flex flex-col items-center justify-around">
+			<button class="btn btn-primary w-full" on:click={downloadCommands}>Download Commands</button>
+			<input type="text" placeholder={filename} class="input w-full max-w-xs" />
+		</div>
 	</div>
 	<FitnessChart />
 	<LikenessChart />

@@ -28,18 +28,19 @@
 				};
 			} else if (file.name.split('.')[1] === 'schematic') {
 				reader.readAsArrayBuffer(file);
-				reader.onload = () => {
-					try {
-						const { width, height, length, blocks } = parseSchematic(reader.result);
-						terrainSize = Math.min(Math.max(width, height), 256);
-						terrainSize = Math.pow(2, Math.ceil(Math.log2(terrainSize)));
-						const terrain = Terrain.fromBlockArray(blocks, terrainSize, $targetMC.world);
-						$evolution.targetTerrain = terrain;
-						resetTerrainAndUpdate();
-						// terrainImage.set(terrain.toCanvas().toDataURL('image/jpeg', 0.5));
-					} catch (e) {
-						console.error(e);
-					}
+				reader.onload = async () => {
+					// try {
+					const { width, height, length, blocks } = await parseSchematic(reader.result);
+					console.log(width, height, length, blocks);
+					const terrain = Terrain.fromBlockArray($targetMC.world, blocks, width, height, length);
+					console.log(terrain);
+					$evolution.targetTerrain = terrain;
+					$evolution.terrainSize = terrain.size;
+					resetTerrainAndUpdate();
+					console.log($evolution);
+					// } catch (e) {
+					// 	console.error(e);
+					// }
 				};
 			}
 		};
@@ -78,7 +79,6 @@
 	$: {
 		if (terrainSize) {
 			$evolution.terrainSize = terrainSize;
-			processImageInput();
 		}
 	}
 
@@ -89,7 +89,6 @@
 	}
 
 	function generateTerrain2D() {
-		if (!isMounted) return;
 		$evolution.targetTerrain = Terrain.generate2D(
 			$targetMC.world,
 			$evolution.terrainSize,
@@ -99,7 +98,6 @@
 		resetTerrainAndUpdate();
 	}
 	function generateTerrain3D() {
-		if (!isMounted) return;
 		$evolution.targetTerrain = Terrain.generate3D(
 			$targetMC.world,
 			$evolution.terrainSize,
@@ -111,7 +109,6 @@
 	}
 
 	function generateHousingTest() {
-		if (!isMounted) return;
 		$evolution.targetTerrain = Terrain.generateHousingTest($targetMC.world);
 		resetTerrainAndUpdate();
 	}
@@ -272,7 +269,7 @@
 			<span class="label-text mr-2">Survivor Rate</span>
 			<input
 				type="range"
-				min="0"
+				min="0.01"
 				max="1"
 				step="0.01"
 				bind:value={$evolution.survivorRate}
@@ -328,7 +325,7 @@
 			<span class="label-text mr-2">Likeness %</span>
 			<input
 				type="range"
-				min="95"
+				min="99"
 				max="100"
 				step="0.01"
 				bind:value={$evolution.stopPointLikeness}

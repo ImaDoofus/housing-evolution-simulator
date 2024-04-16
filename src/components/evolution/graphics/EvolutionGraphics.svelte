@@ -4,18 +4,12 @@
 	import { currentMC, targetMC } from '$lib/stores/minecraft';
 	import { onMount } from 'svelte';
 
-	import {
-		BoxGeometry,
-		MeshBasicMaterial,
-		EdgesGeometry,
-		LineSegments,
-		LineBasicMaterial
-	} from 'three';
+	import { BoxGeometry, EdgesGeometry, LineSegments, LineBasicMaterial } from 'three';
 	onMount(() => {
 		// @ts-ignore
-		$currentMC.camera = $targetMC.camera;
+		$targetMC.camera = $currentMC.camera;
 		// @ts-ignore
-		$currentMC.controls = $targetMC.controls;
+		// $targetMC.controls = $currentMC.controls;
 
 		const boxMesh = new LineSegments(
 			new EdgesGeometry(new BoxGeometry(256, 256, 256)),
