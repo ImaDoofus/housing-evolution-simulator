@@ -46,7 +46,7 @@ export default class Command {
 	y2: number;
 	z2: number;
 	mesh: Mesh | undefined;
-	executionTime = 5;
+	executionTime = 2;
 	isHighlighted = false;
 
 	static count = 0;
@@ -79,29 +79,30 @@ export default class Command {
 		const minZ = Math.min(this.z1, this.z2);
 		const maxZ = Math.max(this.z1, this.z2);
 
-		return (maxX - minX + 1) * (maxY - minY + 1) * (maxZ - minZ + 1);
+		return (maxX - minX) * (maxY - minY) * (maxZ - minZ);
 	}
 
-	#clamp(value: number, min: number, max: number) {
-		return Math.round(Math.max(min, Math.min(value, max)));
+	private clamp(value: number, min: number, max: number) {
+		return Math.round(Math.max(min, Math.min(value, max + 1)));
 	}
 
-	mutate(mutationRate: number, mutationAmount: number, terrainSize: number) {
+	mutate(mutationRate: number, mutationAmount: number, boundingBox: { x1: number; y1: number; z1: number, x2: number, y2: number, z2: number }) {
 		function getMutation() {
 			return Math.random() * mutationAmount * 2 - mutationAmount;
 		}
 		if (Math.random() < mutationRate)
-			this.x1 = this.#clamp(this.x1 + getMutation(), 0, terrainSize);
+			this.x1 = this.clamp(this.x1 + getMutation(), boundingBox.x1, boundingBox.x2);
 		if (Math.random() < mutationRate)
-			this.y1 = this.#clamp(this.y1 + getMutation(), 0, terrainSize);
+			this.y1 = this.clamp(this.y1 + getMutation(), boundingBox.y1, boundingBox.y2);
 		if (Math.random() < mutationRate)
-			this.z1 = this.#clamp(this.z1 + getMutation(), 0, terrainSize);
+			this.z1 = this.clamp(this.z1 + getMutation(), boundingBox.z1, boundingBox.z2);
 		if (Math.random() < mutationRate)
-			this.x2 = this.#clamp(this.x2 + getMutation(), 0, terrainSize);
+			this.x2 = this.clamp(this.x2 + getMutation(), boundingBox.x1, boundingBox.x2);
 		if (Math.random() < mutationRate)
-			this.y2 = this.#clamp(this.y2 + getMutation(), 0, terrainSize);
+			this.y2 = this.clamp(this.y2 + getMutation(), boundingBox.y1, boundingBox.y2);
 		if (Math.random() < mutationRate)
-			this.z2 = this.#clamp(this.z2 + getMutation(), 0, terrainSize);
+			this.z2 = this.clamp(this.z2 + getMutation(), boundingBox.z1, boundingBox.z2);
+
 	}
 
 	reproduce() {
@@ -180,9 +181,9 @@ export default class Command {
 		const maxZ = Math.max(this.z1, this.z2);
 		const currentBlocks = Command.currentTerrain.mcWorld.blocks;
 		const targetBlocks = Command.targetTerrain.mcWorld.blocks;
-		for (let x = minX; x < maxX; x++) {
-			for (let y = minY; y < maxY; y++) {
-				for (let z = minZ; z < maxZ; z++) {
+		for (let x = minX; x <= maxX; x++) {
+			for (let y = minY; y <= maxY; y++) {
+				for (let z = minZ; z <= maxZ; z++) {  
 					const index = ((x << shift) << shift) + (y << shift) + z;
 					const currentBlock = currentBlocks[index];
 					const targetBlock = targetBlocks[index];
@@ -211,27 +212,18 @@ export default class Command {
 	// 	this.fitness = afterCommandLikeness - beforeCommandLikeness;
 	// }
 
-	static generateRandom(terrainSize: number) {
+
+	// TODO: optimize generation of commands
+	static generateRandom(boundingBox: { x1: number; y1: number; z1: number, x2: number, y2: number, z2: number }) {
 		const command = new Command();
-		const maxSize = 2;
-		const width = Math.floor(Math.random() * maxSize) + 1;
-		const height = Math.floor(Math.random() * maxSize) + 1;
-		const depth = Math.floor(Math.random() * maxSize) + 1;
-		// const width = 1;
-		// const height = 1;
-		// const depth = 1;
-
-		// command.x1 = 0;
-		// command.y1 = 0;
-		// command.z1 = 0;
+		// generate point in bounding box
+		command.x1 = Math.floor(Math.random() * (boundingBox.x2 - boundingBox.x1) + boundingBox.x1);
+		command.y1 = Math.floor(Math.random() * (boundingBox.y2 - boundingBox.y1) + boundingBox.y1);
+		command.z1 = Math.floor(Math.random() * (boundingBox.z2 - boundingBox.z1) + boundingBox.z1);
+		command.x2 = command.x1;
+		command.y2 = command.y1;
+		command.z2 = command.z1;
 		command.generation = 0;
-		command.x1 = Math.floor(Math.random() * terrainSize);
-		command.y1 = Math.floor(Math.random() * terrainSize);
-		command.z1 = Math.floor(Math.random() * terrainSize);
-		command.x2 = command.x1 + width;
-		command.y2 = command.y1 + height;
-		command.z2 = command.z1 + depth;
-
 		command.block = Command.targetTerrain.mcWorld.getBlockID(command.x1, command.y1, command.z1);
 		return command;
 	}

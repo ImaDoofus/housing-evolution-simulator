@@ -146,7 +146,7 @@
 			{/each}
 		</div>
 		<div class="divider m-2">OR</div>
-		<div class="flex justify-around">
+		<div class="flex justify-around flex-col gap-1">
 			<button class="btn btn-secondary" on:click={generateTerrain2D}>Generate 2D Terrain</button>
 			<button class="btn btn-secondary" on:click={generateTerrain3D}>Generate 3D Terrain</button>
 			<button class="btn btn-secondary" on:click={generateHousingTest}>Housing Test</button>

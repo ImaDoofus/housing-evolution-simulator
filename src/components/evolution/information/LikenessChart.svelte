@@ -4,6 +4,7 @@
 	import { evolution } from '$lib/stores/evolution';
 	let canvas: HTMLCanvasElement;
 	let chart: Chart;
+	// TODO: make it log scale
 
 	onMount(() => {
 		const ctx = canvas.getContext('2d');

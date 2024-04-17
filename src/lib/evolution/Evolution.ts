@@ -3,6 +3,7 @@ import { commandCacher } from './Command';
 import Command from './Command';
 import { evolution } from '$lib/stores/evolution';
 import { currentMC, targetMC } from '$lib/stores/minecraft';
+import { BoxGeometry, Mesh, MeshBasicMaterial } from 'three';
 
 let $currentMC: any;
 let $targetMC: any;
@@ -16,13 +17,14 @@ export default class Evolution {
 	targetTerrain!: Terrain;
 	generation = 0;
 	commandsExecuted: Command[] = [];
-	populationSize = 100;
+	populationSize = 5000;
 	stopPointGenTimeMins = 60;
-	mutationRate = 0.3;
-	mutationAmount = 5;
+	mutationRate = 0.5;
+	mutationAmount = 32;
 	stopPointLikeness = 99.5;
 	terrainSize = 80; // TODO: make a bounding box instead
-	survivorRate = 0.8;
+	generations = 1000;
+	survivorRate = 0.1;
 	isRunning = false;
 	fitnessHistory: number[] = [];
 	bestFitnessHistory: number[] = [];
@@ -31,7 +33,15 @@ export default class Evolution {
 	averageFitness = 0;
 	bestCommand = new Command();
 	likenessToTarget = 0;
-	generations = 250;
+
+	boundingBox: { x1: number; x2: number; y1: number; y2: number; z1: number; z2: number } = {
+		x1: 0,
+		x2: 0,
+		y1: 0,
+		y2: 0,
+		z1: 0,
+		z2: 0
+	};
 
 	constructor() {
 		this.population = [];
@@ -53,14 +63,28 @@ export default class Evolution {
 
 	calculateLikenessToTarget() {
 		let likeness = 0;
-		const current = this.currentTerrain.mcWorld.blocks;
-		const target = this.targetTerrain.mcWorld.blocks;
-		for (let i = 0; i < current.length; i++) {
-			if (current[i] === target[i]) likeness++;
-			else likeness--;
+		// iterate through boudingBox
+		const blocks = this.currentTerrain.mcWorld.blocks;
+		const shift = Math.log2(this.currentTerrain.size);
+		const minX = this.boundingBox.x1;
+		const maxX = this.boundingBox.x2;
+		const minY = this.boundingBox.y1;
+		const maxY = this.boundingBox.y2;
+		const minZ = this.boundingBox.z1;
+		const maxZ = this.boundingBox.z2;
+		const targetBlocks = this.targetTerrain.mcWorld.blocks;
+		for (let x = minX; x <= maxX; x++) {
+			for (let y = minY; y <= maxY; y++) {
+				for (let z = minZ; z <= maxZ; z++) {
+					const index = ((x << shift) << shift) + (y << shift) + z;
+					const currentBlock = blocks[index];
+					const targetBlock = targetBlocks[index];
+					if (currentBlock === targetBlock) likeness++;
+				}
+			}
 		}
-
-		this.likenessToTarget = likeness / current.length;
+		const size = (maxX - minX) * (maxY - minY) * (maxZ - minZ);
+		this.likenessToTarget = (likeness / size);
 	}
 
 	calculateAverageFitness() {
@@ -77,7 +101,7 @@ export default class Evolution {
 
 	createRandomPopulation() {
 		for (let i = 0; i < this.populationSize; i++) {
-			const command = Command.generateRandom(this.terrainSize);
+			const command = Command.generateRandom(this.boundingBox);
 			command.optimizedFitnessCalculation();
 			this.population.push(command);
 		}
@@ -86,6 +110,7 @@ export default class Evolution {
 	start() {
 		this.isRunning = true;
 		Command.setTerrains(this.currentTerrain, this.targetTerrain);
+		this.findBoundingBox();
 		this.resetPopulation();
 		this.calculateLikenessToTarget();
 	}
@@ -107,10 +132,59 @@ export default class Evolution {
 		}
 	}
 
+	findBoundingBox() {
+		// loop through target terrain and find min and max x, y, z that is not air
+		const blocks = this.targetTerrain.mcWorld.blocks;
+		const shift = Math.log2(this.targetTerrain.size);
+		let minX = Infinity;
+		let maxX = -Infinity;
+		let minY = Infinity;
+		let maxY = -Infinity;
+		let minZ = Infinity;
+		let maxZ = -Infinity;
+		for (let x = 0; x < this.targetTerrain.size; x++) {
+			for (let y = 0; y < this.targetTerrain.size; y++) {
+				for (let z = 0; z < this.targetTerrain.size; z++) {
+					const index = ((x << shift) << shift) + (y << shift) + z;
+					if (blocks[index] !== 0) {
+						minX = Math.min(minX, x);
+						maxX = Math.max(maxX, x);
+						minY = Math.min(minY, y);
+						maxY = Math.max(maxY, y);
+						minZ = Math.min(minZ, z);
+						maxZ = Math.max(maxZ, z);
+					}
+				}
+			}
+		}
+		this.boundingBox = { x1: minX, x2: maxX, y1: minY, y2: maxY, z1: minZ, z2: maxZ };
+		console.log(this.boundingBox);
+		// this.boundingBox = { x1: 0, x2: 5, y1: 0, y2: 5, z1: 0, z2: 11 };
+		const geometry = new BoxGeometry(
+			this.boundingBox.x2 - this.boundingBox.x1 + 1,
+			this.boundingBox.y2 - this.boundingBox.y1 + 1,
+			this.boundingBox.z2 - this.boundingBox.z1 + 1
+		);
+		const material = new MeshBasicMaterial({
+			color: 0x00ffff,
+			transparent: true,
+			opacity: 0.1
+		});
+		const mesh = new Mesh(geometry, material);
+		mesh.position.set(
+			this.boundingBox.x1 + (this.boundingBox.x2 - this.boundingBox.x1 + 1) / 2,
+			this.boundingBox.y1 + (this.boundingBox.y2 - this.boundingBox.y1 + 1) / 2,
+			this.boundingBox.z1 + (this.boundingBox.z2 - this.boundingBox.z1 + 1) / 2
+		);
+
+		$currentMC.scene.add(mesh);
+	}
+
 	executeCommand() {
 		if (this.bestCommand.fitness === 0) {
 			return;
 		}
+
 
 		this.commandsExecuted.push(this.bestCommand);
 		this.bestCommand.execute(this.currentTerrain);
@@ -126,10 +200,10 @@ export default class Evolution {
 
 		commandCacher.clearCache();
 
-		if (this.commandsExecuted.length % 50 === 0) {
+		// if (this.commandsExecuted.length % 5 === 0) {
 			$currentMC.world.updateAllChunks();
 			this.calculateLikenessToTarget();
-		}
+		// }
 	}
 
 	calculateGenerationTime() {
@@ -166,35 +240,39 @@ export default class Evolution {
 
 		//  if average fitness is close to best fitness
 		const survivalCount = Math.floor(this.populationSize * this.survivorRate);
-		const newPopulation = this.population.slice(0, survivalCount);
+		const newPopulation = [];
 
 		// i have no idea how to code a genetic algorithm
-		for (let i = 0; i < this.populationSize; i++) {
-			const parent = this.population[i];
-			if (!parent) break;
-			const survived = parent.fitness > 0 && i < survivalCount;
-			if (survived) {
-				const child = parent.reproduce();
-				child.mutate(this.mutationRate, this.mutationAmount, this.terrainSize);
-				child.optimizedFitnessCalculation();
-				newPopulation.push(child);
-				if (child.fitness > parent.fitness) {
-					newPopulation.push(child);
-				} else {
-					newPopulation.push(parent);
-				}
-			} else {
-				const random = Command.generateRandom(this.terrainSize);
-				random.optimizedFitnessCalculation();
-				newPopulation.push(random);
-			}
+		// take the most fit half and make them reproduce
+		for (let i = 0; i < this.populationSize / 2; i++) {
+			const organism = this.population[i];
+			const child = organism.reproduce();
+			child.mutate(this.mutationRate, this.mutationAmount, this.boundingBox);
+			child.optimizedFitnessCalculation();
+			newPopulation.push(child);
+			newPopulation.push(organism);
 		}
+		// for (let i = 0; i < this.populationSize; i++) {
+		// 	const organism = this.population[i];
+		// 	const survived = i < survivalCount;
+		// 	if (survived) {
+		// 		const child = organism.reproduce();
+		// 		child.mutate(this.mutationRate, this.mutationAmount, this.boundingBox);
+		// 		child.optimizedFitnessCalculation();
+		// 		newPopulation.push(child);
+		// 		newPopulation.push(organism);
+		// 	} else {
+		// 		const random = Command.generateRandom(this.boundingBox);
+		// 		random.optimizedFitnessCalculation();
+		// 		newPopulation.push(random);
+		// 	}
+		// }
 
 		this.population = newPopulation;
 		this.population.sort((a, b) => {
-			// sort by fitness then by size
+			// sort by fitness then by size descending
 			if (a.fitness === b.fitness) {
-				return a.getSize() - b.getSize();
+				return b.getSize() - a.getSize();
 			}
 			return b.fitness - a.fitness;
 		});

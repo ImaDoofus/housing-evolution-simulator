@@ -19,9 +19,9 @@ export default class Terrain {
 		const maxY = Math.max(y1, y2);
 		const minZ = Math.min(z1, z2);
 		const maxZ = Math.max(z1, z2);
-		for (let x = minX; x < maxX; x++) {
-			for (let y = minY; y < maxY; y++) {
-				for (let z = minZ; z < maxZ; z++) {
+		for (let x = minX; x <= maxX; x++) {
+			for (let y = minY; y <= maxY; y++) {
+				for (let z = minZ; z <= maxZ; z++) {
 					this.mcWorld.setBlock(x, y, z, value);
 				}
 			}
@@ -94,9 +94,9 @@ export default class Terrain {
 					const xPos = x + dx;
 					const yPos = y + dy;
 					const zPos = z + dz;
-					if (xPos < -11 || xPos > 266) continue;
-					if (yPos < 0 || yPos > 255) continue;
-					if (zPos < -11 || zPos > 266) continue;
+					if (xPos < 0 || xPos > this.size - 1) continue;
+					if (yPos < 0 || yPos > this.size - 1) continue;
+					if (zPos < 0 || zPos > this.size - 1) continue;
 					if (dx * dx + dy * dy + dz * dz < radius * radius) {
 						this.mcWorld.setBlock(x + dx, y + dy, z + dz, value);
 					}
@@ -137,16 +137,12 @@ export default class Terrain {
 	}
 
 	static generateHousingTest(mcWorld: Minecraft.World) {
-		const size = 16;
+		const size = 64;
 		const terrain = new Terrain(size, mcWorld);
 
-		for (let x = 0; x < 16; x++) {
-			for (let z = 0; z < 16; z++) {
-				const i = x + z * 16;
-				if (i >= 174) continue;
-				terrain.mcWorld.setBlock(x, 0, z, i);
-			}
-		}
+		// generate a sphere
+		terrain.generateSphere(32, 64, 32, 32, 1);
+
 
 		return terrain;
 	}
